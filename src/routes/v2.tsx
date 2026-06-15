@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, X, Phone } from "lucide-react";
+import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, ChevronLeft, X, Phone } from "lucide-react";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import hugImg               from "../assets/jesus-moments/hug.png";
@@ -129,17 +129,25 @@ function AppFlowV2() {
 function LandingScreenV2({ onNext }: { onNext: () => void }) {
   return (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
-      <header className="mb-4">
+      <header className="mb-2">
         <p className="text-xs font-bold tracking-[0.25em] uppercase text-brand-gold mb-2 opacity-70">
           Experiência exclusiva com IA
         </p>
-        <h1 className="text-[26px] leading-tight text-foreground">
+        <h1 className="text-[28px] font-black leading-tight text-foreground">
           Veja como seria um momento seu
         </h1>
-        <h2 className="text-[26px] leading-tight text-brand-gold mt-0.5">
+        <h2
+          className="text-[28px] font-black leading-tight mt-0.5"
+          style={{
+            background: "linear-gradient(135deg, #F5A623 0%, #C8860A 55%, #F5A623 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
           ao lado de Jesus ✝️
         </h2>
-        <p className="text-gray-500 mt-3 text-sm px-4 leading-relaxed">
+        <p className="text-gray-500 mt-2 text-sm px-4 leading-relaxed">
           Crie uma imagem emocionante e única em poucos segundos
         </p>
       </header>
@@ -155,7 +163,7 @@ function LandingScreenV2({ onNext }: { onNext: () => void }) {
           <div key={style.id} className="card-style relative aspect-[3/4] overflow-hidden">
             <img src={style.img} alt={style.label} className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-0 inset-x-0 bg-white/90 py-2.5 px-2 text-[10px] font-semibold text-foreground text-center border-t border-brand-gold/20">
+            <div className="absolute bottom-0 inset-x-0 bg-white/90 py-2 px-2 text-[10px] font-semibold text-foreground text-center border-t border-brand-gold/20">
               {style.label}
             </div>
           </div>
@@ -163,8 +171,8 @@ function LandingScreenV2({ onNext }: { onNext: () => void }) {
       </div>
 
       <div className="mt-2">
-        <button onClick={onNext} className="btn-primary">
-          CRIAR MINHA IMAGEM
+        <button onClick={onNext} className="btn-primary btn-shimmer">
+          ✨ CRIAR MINHA IMAGEM
         </button>
         <p className="text-[11px] text-gray-400 mt-3 font-medium">
           🔒 Seguro · Rápido · Entregue no WhatsApp
@@ -207,16 +215,16 @@ function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void 
           Uma <em>selfie do seu rosto</em>, bem iluminada.
         </p>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 items-end">
           <div className="flex flex-col gap-2">
-            <div className="aspect-square rounded-2xl overflow-hidden border-2 border-gray-200">
-              <img src={uploadErradoImg} alt="Exemplo errado" className="w-full h-full object-cover" />
+            <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
+              <img src={uploadErradoImg} alt="Exemplo errado" className="w-full object-contain" />
             </div>
             <span className="text-[11px] text-gray-400 font-bold text-center">Tire assim ✗</span>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="aspect-square rounded-2xl overflow-hidden border-2 border-brand-gold">
-              <img src={uploadIdealImg} alt="Foto ideal" className="w-full h-full object-cover" />
+            <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
+              <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
             </div>
             <span className="text-[11px] text-brand-gold font-bold text-center">Foto ideal ✓</span>
           </div>
@@ -246,11 +254,6 @@ function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void 
         </label>
       </div>
 
-      <div className="bg-amber-50/80 rounded-2xl p-4 border border-amber-200/60 text-center">
-        <p className="text-sm font-bold text-amber-800">
-          Novidade! Agora o sistema também funciona com fotos de homens 🙏
-        </p>
-      </div>
     </div>
   );
 }
@@ -260,9 +263,8 @@ function PhotoConfirmModalV2({ photoUrl, onConfirm, onRetry }: {
   photoUrl: string; onConfirm: () => void; onRetry: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-[480px] rounded-t-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
-        <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-[420px] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto" style={{ maxHeight: '90dvh' }}>
         <div className="p-5 relative">
           <button onClick={onRetry} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
             <X size={24} />
@@ -278,14 +280,14 @@ function PhotoConfirmModalV2({ photoUrl, onConfirm, onRetry }: {
 
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="flex flex-col gap-1.5">
-              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-gray-200">
-                <img src={photoUrl} alt="Sua foto" className="w-full h-full object-cover" />
+              <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
+                <img src={photoUrl} alt="Sua foto" className="w-full object-contain" />
               </div>
               <p className="text-[11px] text-gray-500 font-bold text-center">Sua foto</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-brand-gold">
-                <img src={uploadIdealImg} alt="Foto ideal" className="w-full h-full object-cover" />
+              <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
+                <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
               </div>
               <p className="text-[11px] text-brand-gold font-bold text-center">Foto ideal ✓</p>
             </div>
@@ -436,7 +438,7 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
 
       <div className="text-center">
         <p className="text-sm font-bold text-foreground">
-          👆 Toque em <span className="text-brand-gold font-extrabold uppercase">CADA</span> imagem que você quer liberar
+          👇 Toque em <span className="text-brand-gold font-extrabold uppercase">CADA</span> imagem que você quer liberar
         </p>
         <p className="text-[11px] text-gray-400 mt-1">
           Você pode escolher <strong>mais de uma</strong> — toque em todas que quiser
@@ -455,11 +457,11 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
                 isSelected ? "ring-[3px] ring-brand-gold shadow-lg" : "ring-0"
               }`}
             >
-              {/* Foto pixelada — revelação acontece via WhatsApp após pagamento */}
+              {/* Foto pixelada — revelação via WhatsApp após pagamento */}
               <img
                 src={style.imgPixelado}
                 alt={style.label}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain bg-gray-900"
               />
 
               {/* Badge preço — canto superior esquerdo */}
@@ -500,8 +502,8 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
       </div>
 
       <div className="flex flex-col gap-1.5 bg-amber-50/60 rounded-xl p-3 border border-amber-100">
-        <p className="text-xs text-amber-700 font-medium flex items-center gap-2">⏳ Sua imagem fica disponível por tempo limitado</p>
-        <p className="text-xs text-foreground font-medium flex items-center gap-2">✝️ Imagem pronta para você guardar para sempre</p>
+        <p className="text-xs text-amber-700 font-medium">⏳ Sua imagem fica disponível por tempo limitado</p>
+        <p className="text-xs text-foreground font-medium">✝️ Imagem pronta para você guardar para sempre</p>
       </div>
 
       {hasSelection && (
@@ -696,8 +698,6 @@ function PhoneScreenV2({ phone, setPhone, onNext }: {
 }
 
 // ── TESTIMONIAL CAROUSEL (V2) ─────────────────────────────────────────────────
-const ROTATIONS_V2 = [-2.5, 1.8, -1.5, 2.2, -2];
-
 function TestimonialCarouselV2({ images }: { images: string[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
@@ -709,31 +709,52 @@ function TestimonialCarouselV2({ images }: { images: string[] }) {
   }, []);
 
   const goTo = (i: number) => {
+    const target = Math.max(0, Math.min(images.length - 1, i));
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+    el.scrollTo({ left: target * el.clientWidth, behavior: 'smooth' });
+    setActive(target);
   };
 
   return (
-    <div>
+    <div className="relative">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
         className="flex overflow-x-auto no-scrollbar snap-x-mandatory"
       >
         {images.map((src, i) => (
-          <div key={i} className="snap-center w-full shrink-0 flex justify-center items-center py-4 px-6">
+          <div key={i} className="snap-center w-full shrink-0 flex justify-center items-center py-2 px-2">
             <img
               src={src}
               alt={`Depoimento ${i + 1}`}
-              className="w-[88%] rounded-2xl shadow-2xl object-cover"
-              style={{ transform: `rotate(${ROTATIONS_V2[i % ROTATIONS_V2.length]}deg)` }}
+              className="w-full rounded-2xl shadow-xl object-cover"
               loading="lazy"
             />
           </div>
         ))}
       </div>
-      <div className="flex justify-center items-center gap-2 mt-2">
+
+      {active > 0 && (
+        <button
+          onClick={() => goTo(active - 1)}
+          className="absolute left-1 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur-sm shadow-md rounded-full flex items-center justify-center text-gray-600 z-10"
+          aria-label="Anterior"
+        >
+          <ChevronLeft size={20} />
+        </button>
+      )}
+      {active < images.length - 1 && (
+        <button
+          onClick={() => goTo(active + 1)}
+          className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur-sm shadow-md rounded-full flex items-center justify-center text-gray-600 z-10"
+          aria-label="Próximo"
+        >
+          <ChevronRight size={20} />
+        </button>
+      )}
+
+      <div className="flex justify-center items-center gap-2 mt-3">
         {images.map((_, i) => (
           <button
             key={i}
