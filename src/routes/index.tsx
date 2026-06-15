@@ -3,10 +3,15 @@ import { useState, useEffect } from "react";
 import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, X, Phone } from "lucide-react";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
-import hugImg          from "../assets/jesus-moments/hug.png";
-import smilingImg      from "../assets/jesus-moments/smiling.png";
-import holdingHandsImg from "../assets/jesus-moments/holding-hands.png";
-import fieldImg        from "../assets/jesus-moments/field.png";
+import hugImg               from "../assets/jesus-moments/hug.png";
+import smilingImg           from "../assets/jesus-moments/smiling.png";
+import holdingHandsImg      from "../assets/jesus-moments/holding-hands.png";
+import fieldImg             from "../assets/jesus-moments/field.png";
+
+import hugPixeladoImg          from "../assets/jesus-moments/hug-pixelado.jpeg";
+import smilingPixeladoImg      from "../assets/jesus-moments/smiling-pielado.jpeg";
+import holdingHandsPixeladoImg from "../assets/jesus-moments/holding-hands-pixelado.jpeg";
+import fieldPixeladoImg        from "../assets/jesus-moments/field-pixelado.jpeg";
 
 import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
 import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
@@ -28,10 +33,10 @@ export const Route = createFileRoute("/")({
 type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'phone' | 'pix';
 
 const STYLES = [
-  { id: 1, label: "Jesus te abraçando",         img: hugImg,          description: "Jesus te abraçando" },
-  { id: 2, label: "Jesus ao seu lado sorrindo", img: smilingImg,      description: "Jesus ao seu lado sorrindo" },
-  { id: 3, label: "Jesus segurando sua mão",    img: holdingHandsImg, description: "Jesus segurando sua mão" },
-  { id: 4, label: "Momento no campo com Jesus", img: fieldImg,        description: "Momento no campo com Jesus" },
+  { id: 1, label: "Jesus te abraçando",         img: hugImg,          imgPixelado: hugPixeladoImg,          description: "Jesus te abraçando" },
+  { id: 2, label: "Jesus ao seu lado sorrindo", img: smilingImg,      imgPixelado: smilingPixeladoImg,      description: "Jesus ao seu lado sorrindo" },
+  { id: 3, label: "Jesus segurando sua mão",    img: holdingHandsImg, imgPixelado: holdingHandsPixeladoImg, description: "Jesus segurando sua mão" },
+  { id: 4, label: "Momento no campo com Jesus", img: fieldImg,        imgPixelado: fieldPixeladoImg,        description: "Momento no campo com Jesus" },
 ];
 
 const DEPOIMENTOS = [dep1, dep2, dep3, dep4, dep5];
@@ -430,51 +435,56 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
       </div>
 
       {/* Image Grid */}
-      <div className="grid grid-cols-2 gap-4 mt-4">
+      <div className="grid grid-cols-2 gap-3 mt-2">
         {STYLES.map((style) => {
           const isSelected = selectedIds.includes(style.id);
           return (
-            <div key={style.id} className="flex flex-col gap-2">
-              <div
-                onClick={() => toggleSelection(style.id)}
-                className={`card-style relative aspect-[4/5] transition-all cursor-pointer overflow-hidden ${
-                  isSelected ? "ring-[3px] ring-brand-gold" : ""
-                }`}
-              >
-                {/* Imagem desfocada até selecionar */}
-                <img
-                  src={style.img}
-                  alt={style.label}
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
-                    isSelected ? "blur-none scale-100" : "blur-[3px] scale-105 brightness-90"
-                  }`}
-                />
+            <div
+              key={style.id}
+              onClick={() => toggleSelection(style.id)}
+              className={`card-style relative aspect-[3/4] cursor-pointer overflow-hidden transition-all duration-200 ${
+                isSelected ? "ring-[3px] ring-brand-gold shadow-lg" : "ring-0"
+              }`}
+            >
+              {/* Foto pixelada sempre visível — a "revelação" acontece via WhatsApp após pagamento */}
+              <img
+                src={style.imgPixelado}
+                alt={style.label}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
 
-                {/* Badge preço */}
-                <div className="absolute top-2 left-2 z-10 flex flex-col gap-0.5">
-                  <span className="bg-black/75 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-sm leading-tight">
-                    Apenas R$ 10,90
-                  </span>
-                  <span className="bg-black/50 text-white text-[6.5px] font-bold px-1.5 py-0.5 rounded-sm leading-tight">
-                    Alta qualidade para baixar
-                  </span>
-                </div>
+              {/* Badge preço — canto superior esquerdo */}
+              <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-start gap-0 px-2 pt-2">
+                <span className="bg-black/70 text-white text-[8px] font-extrabold px-2 py-[3px] rounded-sm leading-tight backdrop-blur-[1px]">
+                  Apenas R$ 10,90
+                </span>
+                <span className="bg-black/50 text-white/90 text-[6px] font-semibold px-2 py-[2px] rounded-sm leading-tight mt-[2px] backdrop-blur-[1px]">
+                  Alta qualidade para baixar
+                </span>
+              </div>
 
-                {!isSelected && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <div className="bg-brand-gold text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">
-                      💛 TOQUE
-                    </div>
+              {/* Botão TOQUE — centro, só quando não selecionado */}
+              {!isSelected && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="bg-brand-gold text-white text-[11px] font-black px-4 py-1.5 rounded-full shadow-lg tracking-wide">
+                    💛 TOQUE
                   </div>
-                )}
+                </div>
+              )}
 
-                <div className={`absolute bottom-0 inset-x-0 py-2 text-[9px] font-black text-center uppercase tracking-wider transition-colors ${
-                  isSelected ? "bg-[#1e293b] text-brand-gold" : "bg-[#4da8da] text-white"
+              {/* Rótulo inferior — translúcido com nome do estilo */}
+              <div className={`absolute bottom-0 inset-x-0 z-10 transition-colors duration-200 ${
+                isSelected ? "bg-[#1e293b]/95" : "bg-[#4da8da]/95"
+              }`}>
+                <p className={`text-[9px] font-black text-center uppercase tracking-widest py-1.5 ${
+                  isSelected ? "text-brand-gold" : "text-white"
                 }`}>
                   {isSelected ? "SUA ESCOLHA" : "💛 LEVE TAMBÉM"}
-                </div>
+                </p>
+                <p className="text-[8px] text-white/80 font-semibold text-center pb-1.5 -mt-1 leading-tight px-1">
+                  {style.description}
+                </p>
               </div>
-              <p className="text-[10px] text-center font-bold text-gray-600">{style.description}</p>
             </div>
           );
         })}
