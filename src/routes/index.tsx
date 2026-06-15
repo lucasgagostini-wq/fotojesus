@@ -377,7 +377,7 @@ function LoadingScreen({ onFinish }: { onFinish: () => void }) {
 
   return (
     <div className="content-wrapper animate-in fade-in duration-300 flex flex-col items-center justify-center min-h-[80vh] text-center">
-      <div className="text-[80px] mb-6 animate-bounce">🙏</div>
+      <div className="text-[80px] mb-6">🙏</div>
       <h2 className="text-2xl font-bold text-foreground mb-2">Criando sua imagem...</h2>
       <p className="text-gray-500 mb-8">Quase pronto...</p>
       <div className="w-[70%] h-4 bg-[#e0e0e0] rounded-full overflow-hidden mb-4">
