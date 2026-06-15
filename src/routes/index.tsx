@@ -82,38 +82,40 @@ function AppFlow() {
   };
 
   return (
-    <div className="app-container font-nunito">
-      <div className="w-full max-w-[480px] min-h-screen relative overflow-x-hidden">
-        {currentStep === 'landing'  && <LandingScreen  onNext={() => nextStep('upload')} />}
-        {currentStep === 'upload'   && <UploadScreen   onFileSelect={handleFileSelect} />}
-        {currentStep === 'styles'   && (
-          <StylesScreen selectedIds={selectedStyles} setSelectedIds={setSelectedStyles} onNext={() => nextStep('loading')} />
-        )}
-        {currentStep === 'loading'  && <LoadingScreen  onFinish={() => nextStep('results')} />}
-        {currentStep === 'results'  && (
-          <ResultsScreen selectedIds={resultsSelected} setSelectedIds={setResultsSelected} onContinue={handleResultsContinue} />
-        )}
-        {currentStep === 'phone'    && (
-          <PhoneScreen phone={phoneNumber} setPhone={setPhoneNumber} onNext={() => nextStep('pix')} />
-        )}
-        {currentStep === 'pix'      && (
-          <PixScreen value={pixValue} label={pixLabel} pixCode={pixCodePlaceholder} phoneNumber={phoneNumber} />
-        )}
-
-        {showPhotoConfirm && uploadedPhotoUrl && (
-          <PhotoConfirmModal photoUrl={uploadedPhotoUrl} onConfirm={handlePhotoConfirm} onRetry={handlePhotoRetry} />
-        )}
-
-        {showUpsell && (
-          <UpsellModal
-            selectedIds={resultsSelected}
-            onAccept={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
-            onDecline={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
-            onClose={() => setShowUpsell(false)}
-          />
-        )}
+    <>
+      <div className="app-container font-nunito">
+        <div className="w-full max-w-[480px] min-h-screen relative overflow-x-hidden">
+          {currentStep === 'landing'  && <LandingScreen  onNext={() => nextStep('upload')} />}
+          {currentStep === 'upload'   && <UploadScreen   onFileSelect={handleFileSelect} />}
+          {currentStep === 'styles'   && (
+            <StylesScreen selectedIds={selectedStyles} setSelectedIds={setSelectedStyles} onNext={() => nextStep('loading')} />
+          )}
+          {currentStep === 'loading'  && <LoadingScreen  onFinish={() => nextStep('results')} />}
+          {currentStep === 'results'  && (
+            <ResultsScreen selectedIds={resultsSelected} setSelectedIds={setResultsSelected} onContinue={handleResultsContinue} />
+          )}
+          {currentStep === 'phone'    && (
+            <PhoneScreen phone={phoneNumber} setPhone={setPhoneNumber} onNext={() => nextStep('pix')} />
+          )}
+          {currentStep === 'pix'      && (
+            <PixScreen value={pixValue} label={pixLabel} pixCode={pixCodePlaceholder} phoneNumber={phoneNumber} />
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Modals fora do overflow-x-hidden para fixed funcionar corretamente */}
+      {showPhotoConfirm && uploadedPhotoUrl && (
+        <PhotoConfirmModal photoUrl={uploadedPhotoUrl} onConfirm={handlePhotoConfirm} onRetry={handlePhotoRetry} />
+      )}
+      {showUpsell && (
+        <UpsellModal
+          selectedIds={resultsSelected}
+          onAccept={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
+          onDecline={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
+          onClose={() => setShowUpsell(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -408,12 +410,12 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
       </header>
 
       {/* Lar Aconchego Banner */}
-      <div className="rounded-2xl overflow-hidden border-2 border-brand-gold shadow-sm">
-        <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-36 object-cover" />
+      <div className="rounded-2xl overflow-hidden border-2 border-[#4da8da] shadow-sm">
+        <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-40 object-cover object-center" />
         <div className="bg-white p-3 text-center">
           <p className="text-brand-gold font-bold text-sm leading-snug">
             💛 100% dos valores arrecadados serão doados para o{" "}
-            <span className="underline">Lar Aconchego & Fé</span>
+            <span className="underline font-extrabold">Lar Aconchego & Fé</span>
           </p>
         </div>
       </div>
@@ -435,37 +437,41 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
             <div key={style.id} className="flex flex-col gap-2">
               <div
                 onClick={() => toggleSelection(style.id)}
-                className={`card-style relative aspect-square transition-all cursor-pointer overflow-hidden ${
-                  isSelected ? "border-[3px] border-brand-gold scale-[1.02]" : "border-[3px] border-transparent"
+                className={`card-style relative aspect-[4/5] transition-all cursor-pointer overflow-hidden ${
+                  isSelected ? "ring-[3px] ring-brand-gold" : ""
                 }`}
               >
-                {/* Blurred until selected */}
+                {/* Imagem desfocada até selecionar */}
                 <img
                   src={style.img}
                   alt={style.label}
                   className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
-                    isSelected ? "blur-none scale-100" : "blur-sm scale-105"
+                    isSelected ? "blur-none scale-100" : "blur-[3px] scale-105 brightness-90"
                   }`}
                 />
 
-                <div className="absolute top-2 left-2 z-10">
-                  <span className="bg-black/70 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-sm">
+                {/* Badge preço */}
+                <div className="absolute top-2 left-2 z-10 flex flex-col gap-0.5">
+                  <span className="bg-black/75 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-sm leading-tight">
                     Apenas R$ 10,90
+                  </span>
+                  <span className="bg-black/50 text-white text-[6.5px] font-bold px-1.5 py-0.5 rounded-sm leading-tight">
+                    Alta qualidade para baixar
                   </span>
                 </div>
 
                 {!isSelected && (
                   <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <div className="bg-brand-gold text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md">
-                      TOQUE 👆
+                    <div className="bg-brand-gold text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">
+                      💛 TOQUE
                     </div>
                   </div>
                 )}
 
-                <div className={`absolute bottom-0 inset-x-0 py-1.5 text-[9px] font-black text-center uppercase tracking-wide transition-colors ${
+                <div className={`absolute bottom-0 inset-x-0 py-2 text-[9px] font-black text-center uppercase tracking-wider transition-colors ${
                   isSelected ? "bg-[#1e293b] text-brand-gold" : "bg-[#4da8da] text-white"
                 }`}>
-                  {isSelected ? "SUA ESCOLHA 💛" : "💛 LEVE TAMBÉM"}
+                  {isSelected ? "SUA ESCOLHA" : "💛 LEVE TAMBÉM"}
                 </div>
               </div>
               <p className="text-[10px] text-center font-bold text-gray-600">{style.description}</p>
