@@ -134,7 +134,7 @@ function LandingScreenV2({ onNext }: { onNext: () => void }) {
           Experiência exclusiva com IA
         </p>
         <h1 className="text-[28px] font-black leading-tight text-foreground">
-          Veja como seria um momento seu
+          Veja como seria
         </h1>
         <h2
           className="text-[28px] font-black leading-tight mt-0.5"
@@ -197,12 +197,9 @@ function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void 
         <p className="text-sm text-gray-400 mt-1">Passo 1 de 2</p>
       </header>
 
-      <div className="border-2 border-red-400 bg-red-50/80 rounded-2xl p-4 flex items-center gap-3 text-red-600">
-        <XCircle size={20} className="shrink-0" />
-        <div>
-          <p className="font-bold text-sm">IMPORTANTE</p>
-          <p className="font-extrabold text-xs uppercase">NÃO FUNCIONA COM FOTOS DE CRIANÇAS!</p>
-        </div>
+      <div className="border-2 border-red-400 bg-red-50/80 rounded-2xl p-4 flex flex-col items-center text-center gap-1 text-red-600">
+        <p className="font-bold text-sm flex items-center gap-1.5"><XCircle size={16} className="shrink-0" /> IMPORTANTE</p>
+        <p className="font-extrabold text-xs uppercase">NÃO FUNCIONA COM FOTOS DE CRIANÇAS!</p>
       </div>
 
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-brand-gold/20 flex flex-col gap-4">
@@ -215,14 +212,17 @@ function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void 
           Uma <em>selfie do seu rosto</em>, bem iluminada.
         </p>
 
-        <div className="grid grid-cols-2 gap-4 items-end">
-          <div className="flex flex-col gap-2">
+        <div className="flex gap-2 items-end">
+          <div className="flex flex-col gap-2 flex-1">
             <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
               <img src={uploadErradoImg} alt="Exemplo errado" className="w-full object-contain" />
             </div>
-            <span className="text-[11px] text-gray-400 font-bold text-center">Tire assim ✗</span>
+            <span className="text-[11px] text-gray-400 font-bold text-center">Tire assim</span>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col items-center justify-center shrink-0 pb-6">
+            <ChevronRight size={22} className="text-brand-gold" strokeWidth={2.5} />
+          </div>
+          <div className="flex flex-col gap-2 flex-1">
             <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
               <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
             </div>
