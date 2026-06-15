@@ -1,0 +1,100 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-nunito: "Nunito", sans-serif;
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --color-brand-gold: #F5A623;
+  --color-brand-blue-light: #dceefb;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.2 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 260);
+  --primary: oklch(0.78 0.18 75); /* Approximately #F5A623 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.01 240);
+  --secondary-foreground: oklch(0.2 0.02 260);
+  --muted: oklch(0.96 0.01 240);
+  --muted-foreground: oklch(0.5 0.02 260);
+  --accent: oklch(0.96 0.01 240);
+  --accent-foreground: oklch(0.2 0.02 260);
+  --destructive: oklch(0.6 0.2 30);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9 0.01 240);
+  --input: oklch(0.9 0.01 240);
+  --ring: oklch(0.78 0.18 75);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-nunito);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply w-full bg-brand-gold text-white font-extrabold uppercase py-[18px] rounded-[12px] shadow-md active:scale-[0.98] transition-all;
+  }
+  .btn-secondary {
+    @apply w-full bg-white border-2 border-[#ccc] text-foreground font-semibold py-[16px] rounded-[12px] active:scale-[0.98] transition-all;
+  }
+  .card-style {
+    @apply rounded-[16px] overflow-hidden shadow-sm bg-white;
+  }
+  .app-container {
+    @apply min-h-screen bg-gradient-to-b from-brand-blue-light to-white flex flex-col items-center;
+  }
+  .content-wrapper {
+    @apply w-full max-w-[480px] px-6 py-8 flex flex-col gap-8;
+  }
+  .pulse-glow {
+    animation: pulse-shadow 1.5s infinite ease-in-out;
+  }
+  @keyframes pulse-shadow {
+    0% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(245, 166, 35, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
+  }
+}
