@@ -270,24 +270,21 @@ function PhotoConfirmModalV2({ photoUrl, onConfirm, onRetry }: {
             <X size={24} />
           </button>
 
-          <div className="border-2 border-red-400 bg-red-50/80 rounded-2xl p-3 flex items-center gap-2 text-red-600 mb-5">
-            <XCircle size={18} className="shrink-0" />
-            <div>
-              <p className="font-bold text-sm">IMPORTANTE</p>
-              <p className="font-extrabold text-xs uppercase">NÃO FUNCIONA COM FOTOS DE CRIANÇAS!</p>
-            </div>
+          <div className="border-2 border-red-400 bg-red-50/80 rounded-2xl p-3 flex flex-col items-center text-center gap-1 text-red-600 mb-5">
+            <p className="font-bold text-sm flex items-center gap-1.5"><XCircle size={16} className="shrink-0" /> IMPORTANTE</p>
+            <p className="font-extrabold text-xs uppercase">NÃO FUNCIONA COM FOTOS DE CRIANÇAS!</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="flex flex-col gap-1.5">
-              <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
-                <img src={photoUrl} alt="Sua foto" className="w-full object-contain" />
+              <div className="rounded-2xl overflow-hidden border-2 border-gray-200 aspect-[3/4]">
+                <img src={photoUrl} alt="Sua foto" className="w-full h-full object-cover" />
               </div>
               <p className="text-[11px] text-gray-500 font-bold text-center">Sua foto</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
-                <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
+              <div className="rounded-2xl overflow-hidden border-2 border-brand-gold aspect-[3/4]">
+                <img src={uploadIdealImg} alt="Foto ideal" className="w-full h-full object-cover" />
               </div>
               <p className="text-[11px] text-brand-gold font-bold text-center">Foto ideal ✓</p>
             </div>
