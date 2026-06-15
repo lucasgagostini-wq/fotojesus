@@ -98,3 +98,87 @@
     100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
   }
 }
+
+/* ── Mobile utilities ──────────────────────────────────────────────────────── */
+
+/* Esconde scrollbar mas mantém scroll funcional (iOS + Android) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Snap carousel */
+.snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-center { scroll-snap-align: center; }
+
+/* Safe area para notch iOS e barra de navegação Android */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+/* ============================================
+   V2 — TEMA SAGRADO ÍNTIMO
+   Fundo quente, Playfair Display, ouro rico
+   ============================================ */
+
+.theme-v2 {
+  --color-brand-gold: #C8860A;
+  --color-brand-blue-light: #FFF5E0;
+  --foreground: oklch(0.18 0.05 40);
+  font-family: 'Lato', 'Nunito', sans-serif;
+}
+
+/* Headings usam Playfair Display */
+.theme-v2 h1,
+.theme-v2 h2,
+.theme-v2 h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Background quente substitui o azul frio */
+.theme-v2 .app-container {
+  background: linear-gradient(160deg, #FFF8EE 0%, #FFF1D4 55%, #FEE8C0 100%) !important;
+}
+
+/* Botão primário com gradiente e sombra quente */
+.theme-v2 .btn-primary {
+  background: linear-gradient(135deg, #F5A623 0%, #C8860A 100%) !important;
+  box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 1px 0 rgba(255,255,255,0.14) inset !important;
+  letter-spacing: 0.07em;
+}
+
+/* Botão secundário com borda dourada quente */
+.theme-v2 .btn-secondary {
+  background: #FFFDF8 !important;
+  border: 2px solid #E0C88A !important;
+  color: #2C1A0E !important;
+}
+
+/* Cards com fundo marfim e borda dourada */
+.theme-v2 .card-style {
+  background: #FFFDF8 !important;
+  border: 1.5px solid #EDD89A !important;
+  box-shadow: 0 2px 18px rgba(180, 120, 20, 0.12) !important;
+}
+
+/* Pulse com tom quente */
+.theme-v2 .pulse-glow {
+  animation: pulse-shadow-v2 1.6s infinite ease-in-out;
+}
+
+@keyframes pulse-shadow-v2 {
+  0%   { box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 0 0 0 rgba(200, 134, 10, 0.45); }
+  70%  { box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 0 0 14px rgba(200, 134, 10, 0); }
+  100% { box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 0 0 0 rgba(200, 134, 10, 0); }
+}
+
+/* Shimmer na barra de progresso do loading */
+.theme-v2 .progress-bar-v2 {
+  background: linear-gradient(90deg, #C8860A 0%, #F5A623 50%, #C8860A 100%);
+  background-size: 200% 100%;
+  animation: shimmer-gold 1.8s linear infinite;
+}
+
+@keyframes shimmer-gold {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}

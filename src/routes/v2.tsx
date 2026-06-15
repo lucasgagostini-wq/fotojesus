@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, X, Phone } from "lucide-react";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
@@ -527,29 +527,15 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
         </div>
       )}
 
-      {/* Social Proof */}
-      <div className="mt-6 mb-20">
-        <div className="flex items-center gap-3 mb-4">
+      {/* Social Proof — carousel com rotação */}
+      <div className="mt-6 mb-24">
+        <div className="flex items-center gap-3 mb-2">
           <div className="flex-1 h-px bg-brand-gold/20" />
-          <h3 className="text-sm font-black text-foreground whitespace-nowrap">🌙 O que as pessoas estão sentindo</h3>
+          <h3 className="text-sm font-black text-foreground whitespace-nowrap">💬 O que as pessoas estão sentindo</h3>
           <div className="flex-1 h-px bg-brand-gold/20" />
         </div>
-        <p className="text-[11px] font-medium text-gray-400 text-center mb-4">Centenas de famílias já guardaram seu momento com Jesus</p>
-        <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar px-1">
-          {DEPOIMENTOS.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`Depoimento ${i + 1}`}
-              className="min-w-[240px] w-[240px] aspect-[4/5] object-cover rounded-2xl shadow-sm shrink-0 border border-amber-100"
-            />
-          ))}
-        </div>
-        <div className="flex justify-center gap-1.5 mt-2">
-          {DEPOIMENTOS.map((_, i) => (
-            <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-brand-gold' : 'bg-gray-200'}`} />
-          ))}
-        </div>
+        <p className="text-[11px] font-medium text-gray-400 text-center mb-1">Centenas de famílias já guardaram seu momento com Jesus</p>
+        <TestimonialCarouselV2 images={DEPOIMENTOS} />
       </div>
     </div>
   );
@@ -709,6 +695,60 @@ function PhoneScreenV2({ phone, setPhone, onNext }: {
   );
 }
 
+// ── TESTIMONIAL CAROUSEL (V2) ─────────────────────────────────────────────────
+const ROTATIONS_V2 = [-2.5, 1.8, -1.5, 2.2, -2];
+
+function TestimonialCarouselV2({ images }: { images: string[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setActive(Math.round(el.scrollLeft / el.clientWidth));
+  }, []);
+
+  const goTo = (i: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+  };
+
+  return (
+    <div>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto no-scrollbar snap-x-mandatory"
+      >
+        {images.map((src, i) => (
+          <div key={i} className="snap-center w-full shrink-0 flex justify-center items-center py-4 px-6">
+            <img
+              src={src}
+              alt={`Depoimento ${i + 1}`}
+              className="w-[88%] rounded-2xl shadow-2xl object-cover"
+              style={{ transform: `rotate(${ROTATIONS_V2[i % ROTATIONS_V2.length]}deg)` }}
+              loading="lazy"
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center items-center gap-2 mt-2">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`transition-all duration-300 rounded-full h-2 ${
+              i === active ? 'w-6 bg-brand-gold' : 'w-2 bg-gray-200'
+            }`}
+            aria-label={`Ir para depoimento ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── PIX SCREEN ────────────────────────────────────────────────────────────────
 function PixScreenV2({ value, label, pixCode, phoneNumber }: {
   value: number; label: string; pixCode: string; phoneNumber: string;
@@ -807,26 +847,17 @@ function PixScreenV2({ value, label, pixCode, phoneNumber }: {
         </div>
       </div>
 
-      {/* Social proof */}
-      <div className="mb-24">
-        <div className="flex items-center gap-3 mb-3">
+      {/* Social proof — carousel com rotação */}
+      <div className="mb-28">
+        <div className="flex items-center gap-3 mb-2">
           <div className="flex-1 h-px bg-brand-gold/20" />
-          <p className="text-xs font-black text-foreground whitespace-nowrap">Quem já guardou seu momento</p>
+          <p className="text-xs font-black text-foreground whitespace-nowrap">💛 Quem já guardou seu momento</p>
           <div className="flex-1 h-px bg-brand-gold/20" />
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar px-1">
-          {DEPOIMENTOS.slice(0, 3).map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`Depoimento ${i + 1}`}
-              className="min-w-[260px] w-[260px] aspect-[4/3] object-cover rounded-2xl shadow-sm shrink-0 border border-amber-100"
-            />
-          ))}
-        </div>
+        <TestimonialCarouselV2 images={DEPOIMENTOS} />
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 bg-white/85 backdrop-blur-md border-t border-brand-gold/20 py-4 flex items-center justify-center gap-3">
+      <div className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-brand-gold/20 flex items-center justify-center gap-3" style={{ paddingTop: '12px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <div className="w-4 h-4 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
         <span className="text-xs font-bold text-gray-500">Aguardando confirmação do pagamento...</span>
       </div>

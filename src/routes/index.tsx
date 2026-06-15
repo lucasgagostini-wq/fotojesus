@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, X, Phone } from "lucide-react";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
@@ -518,27 +518,13 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
         </div>
       )}
 
-      {/* Social Proof */}
-      <div className="mt-10 mb-20">
-        <div className="text-center mb-4">
-          <h3 className="font-black text-foreground text-base">🌙 Veja o que outras pessoas estão sentindo</h3>
+      {/* Social Proof — carousel com rotação */}
+      <div className="mt-6 mb-24">
+        <div className="text-center mb-2">
+          <h3 className="font-black text-foreground text-base">💬 Veja o que outras pessoas estão sentindo</h3>
           <p className="text-[11px] font-bold text-gray-400 mt-1">Centenas de famílias já guardaram seu momento com Jesus</p>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar px-2">
-          {DEPOIMENTOS.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`Depoimento ${i + 1}`}
-              className="min-w-[240px] w-[240px] aspect-[4/5] object-cover rounded-2xl shadow-md shrink-0"
-            />
-          ))}
-        </div>
-        <div className="flex justify-center gap-1.5 mt-2">
-          {DEPOIMENTOS.map((_, i) => (
-            <div key={i} className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-brand-gold' : 'bg-gray-200'}`} />
-          ))}
-        </div>
+        <TestimonialCarousel images={DEPOIMENTOS} />
       </div>
     </div>
   );
@@ -704,6 +690,66 @@ function PhoneScreen({ phone, setPhone, onNext }: {
   );
 }
 
+// ── TESTIMONIAL CAROUSEL ─────────────────────────────────────────────────────
+const ROTATIONS = [-2.5, 1.8, -1.5, 2.2, -2];
+
+function TestimonialCarousel({ images }: { images: string[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    setActive(index);
+  }, []);
+
+  const goTo = (i: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+  };
+
+  return (
+    <div>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto no-scrollbar snap-x-mandatory"
+      >
+        {images.map((src, i) => (
+          <div
+            key={i}
+            className="snap-center w-full shrink-0 flex justify-center items-center py-4 px-6"
+          >
+            <img
+              src={src}
+              alt={`Depoimento ${i + 1}`}
+              className="w-[88%] rounded-2xl shadow-2xl object-cover"
+              style={{ transform: `rotate(${ROTATIONS[i % ROTATIONS.length]}deg)` }}
+              loading="lazy"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Dots */}
+      <div className="flex justify-center items-center gap-2 mt-2">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`transition-all duration-300 rounded-full h-2 ${
+              i === active ? 'w-6 bg-brand-gold' : 'w-2 bg-gray-200'
+            }`}
+            aria-label={`Ir para depoimento ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── PIX SCREEN ────────────────────────────────────────────────────────────────
 function PixScreen({ value, label, pixCode, phoneNumber }: {
   value: number; label: string; pixCode: string; phoneNumber: string;
@@ -803,30 +849,16 @@ function PixScreen({ value, label, pixCode, phoneNumber }: {
         </div>
       </div>
 
-      {/* Social proof */}
-      <div className="mt-8 mb-20">
-        <div className="text-center mb-4">
+      {/* Social proof — carousel com rotação */}
+      <div className="mt-8 mb-28">
+        <div className="text-center mb-2">
           <h3 className="text-brand-gold font-black">💛 Quem já guardou seu momento com Jesus</h3>
           <p className="text-[11px] font-bold text-gray-400 mt-1">Veja mensagens de quem recebeu suas imagens</p>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar px-2">
-          {DEPOIMENTOS.slice(0, 3).map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`Depoimento ${i + 1}`}
-              className="min-w-[260px] w-[260px] aspect-[4/3] object-cover rounded-2xl shadow-md shrink-0"
-            />
-          ))}
-        </div>
-        <div className="flex justify-center gap-1.5 mt-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-brand-gold' : 'bg-gray-200'}`} />
-          ))}
-        </div>
+        <TestimonialCarousel images={DEPOIMENTOS} />
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 bg-white/80 backdrop-blur-md border-t border-gray-100 py-4 flex items-center justify-center gap-3">
+      <div className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center justify-center gap-3 pb-safe" style={{ paddingTop: '12px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
         <span className="text-xs font-bold text-gray-500">Aguardando confirmação do pagamento...</span>
       </div>
