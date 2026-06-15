@@ -404,8 +404,14 @@ function LoadingScreenV2({ onFinish }: { onFinish: () => void }) {
 function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
   selectedIds: number[]; setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>; onContinue: () => void;
 }) {
+  const [hasEverSelected, setHasEverSelected] = useState(false);
+
   const toggleSelection = (id: number) => {
-    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+    setSelectedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+      if (next.length > 0) setHasEverSelected(true);
+      return next;
+    });
   };
 
   const hasSelection = selectedIds.length > 0;
@@ -498,44 +504,48 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
         })}
       </div>
 
-      <div className="flex flex-col gap-1.5 bg-amber-50/60 rounded-xl p-3 border border-amber-100">
-        <p className="text-xs text-amber-700 font-medium">⏳ Sua imagem fica disponível por tempo limitado</p>
-        <p className="text-xs text-foreground font-medium">✝️ Imagem pronta para você guardar para sempre</p>
-      </div>
-
-      {hasSelection && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="bg-white/80 border border-brand-gold/30 rounded-2xl p-4 text-center shadow-sm">
-            <p className="text-sm font-bold text-gray-500">
-              {selectedIds.length} {selectedIds.length === 1 ? "imagem selecionada" : "imagens selecionadas"}
-            </p>
-            <p className="text-2xl font-black text-brand-gold mt-1">
-              Total: R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+      {hasEverSelected && (
+        <div className="animate-in fade-in duration-500">
+          <div className="flex flex-col gap-1.5 bg-amber-50/60 rounded-xl p-3 border border-amber-100 mt-4">
+            <p className="text-xs text-amber-700 font-medium">⏳ Sua imagem fica disponível por tempo limitado</p>
+            <p className="text-xs text-foreground font-medium">✝️ Imagem pronta para você guardar para sempre</p>
           </div>
 
-          <button
-            className="btn-primary mt-4 pulse-glow w-full flex flex-col items-center py-4 gap-0.5"
-            onClick={onContinue}
-          >
-            <span className="font-extrabold text-base tracking-wide">LIBERAR MINHA IMAGEM AGORA</span>
-            <span className="text-[11px] font-medium opacity-90">Pagamento rápido e seguro via Pix</span>
-          </button>
+          <div className="mt-6">
+            {hasSelection && (
+              <div className="bg-white/80 border border-brand-gold/30 rounded-2xl p-4 text-center shadow-sm mb-4">
+                <p className="text-sm font-bold text-gray-500">
+                  {selectedIds.length} {selectedIds.length === 1 ? "imagem selecionada" : "imagens selecionadas"}
+                </p>
+                <p className="text-2xl font-black text-brand-gold mt-1">
+                  Total: R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            )}
 
-          <p className="text-center text-xs text-gray-400 font-medium mt-2">Acesso imediato após o pagamento</p>
+            <button
+              className={`btn-primary pulse-glow w-full flex flex-col items-center py-4 gap-0.5 transition-opacity ${!hasSelection ? 'opacity-50' : ''}`}
+              onClick={hasSelection ? onContinue : undefined}
+              disabled={!hasSelection}
+            >
+              <span className="font-extrabold text-base tracking-wide">LIBERAR MINHA IMAGEM AGORA</span>
+              <span className="text-[11px] font-medium opacity-90">Pagamento rápido e seguro via Pix</span>
+            </button>
+
+            <p className="text-center text-xs text-gray-400 font-medium mt-2">Acesso imediato após o pagamento</p>
+          </div>
+
+          <div className="mt-6 mb-24">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex-1 h-px bg-brand-gold/20" />
+              <h3 className="text-sm font-black text-foreground whitespace-nowrap">💬 O que as pessoas estão sentindo</h3>
+              <div className="flex-1 h-px bg-brand-gold/20" />
+            </div>
+            <p className="text-[11px] font-medium text-gray-400 text-center mb-1">Centenas de famílias já guardaram seu momento com Jesus</p>
+            <TestimonialCarouselV2 images={DEPOIMENTOS} />
+          </div>
         </div>
       )}
-
-      {/* Social Proof — carousel com rotação */}
-      <div className="mt-6 mb-24">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex-1 h-px bg-brand-gold/20" />
-          <h3 className="text-sm font-black text-foreground whitespace-nowrap">💬 O que as pessoas estão sentindo</h3>
-          <div className="flex-1 h-px bg-brand-gold/20" />
-        </div>
-        <p className="text-[11px] font-medium text-gray-400 text-center mb-1">Centenas de famílias já guardaram seu momento com Jesus</p>
-        <TestimonialCarouselV2 images={DEPOIMENTOS} />
-      </div>
     </div>
   );
 }
@@ -696,35 +706,81 @@ function PhoneScreenV2({ phone, setPhone, onNext }: {
 
 // ── TESTIMONIAL CAROUSEL (V2) ─────────────────────────────────────────────────
 function TestimonialCarouselV2({ images }: { images: string[] }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState(0);
+  const [containerW, setContainerW] = useState(0);
+  const busy = useRef(false);
+  const posRef = useRef(0);
+  const total = images.length;
+  const CLONE = 2;
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setActive(Math.round(el.scrollLeft / el.clientWidth));
+  const extended = [
+    images[(total - 2 + total) % total],
+    images[(total - 1 + total) % total],
+    ...images,
+    images[0],
+    images[1 % total],
+  ];
+
+  const applyTranslate = (extIdx: number, w: number, animate: boolean) => {
+    const track = trackRef.current;
+    if (!track || !w) return;
+    track.style.transition = animate ? 'transform 0.65s ease-in-out' : 'none';
+    track.style.transform = `translateX(-${extIdx * (w / 2)}px)`;
+  };
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const measure = () => {
+      const w = wrap.clientWidth;
+      setContainerW(w);
+      applyTranslate(CLONE + posRef.current, w, false);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrap);
+    return () => ro.disconnect();
   }, []);
 
-  const goTo = (i: number) => {
-    const target = Math.max(0, Math.min(images.length - 1, i));
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ left: target * el.clientWidth, behavior: 'smooth' });
-    setActive(target);
+  const navigate = (dir: 1 | -1) => {
+    if (busy.current || !containerW) return;
+    busy.current = true;
+    const nextPos = ((pos + dir) % total + total) % total;
+    const extIdx = CLONE + pos + dir;
+    applyTranslate(extIdx, containerW, true);
+    posRef.current = nextPos;
+    setPos(nextPos);
+    setTimeout(() => {
+      if (extIdx < CLONE || extIdx >= CLONE + total) {
+        applyTranslate(CLONE + nextPos, containerW, false);
+      }
+      busy.current = false;
+    }, 700);
+  };
+
+  const jumpTo = (i: number) => {
+    if (busy.current || !containerW) return;
+    busy.current = true;
+    posRef.current = i;
+    setPos(i);
+    applyTranslate(CLONE + i, containerW, true);
+    setTimeout(() => { busy.current = false; }, 700);
   };
 
   return (
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex overflow-x-auto no-scrollbar snap-x-mandatory"
-      >
-        {images.map((src, i) => (
-          <div key={i} className="snap-center w-full shrink-0 flex justify-center items-center py-2 px-2">
+    <div className="relative overflow-hidden" ref={wrapRef}>
+      <div ref={trackRef} className="flex will-change-transform">
+        {extended.map((src, i) => (
+          <div
+            key={i}
+            className="shrink-0 px-1.5"
+            style={{ width: containerW > 0 ? `${containerW / 2}px` : '50%' }}
+          >
             <img
               src={src}
-              alt={`Depoimento ${i + 1}`}
+              alt={`Depoimento ${(i % total) + 1}`}
               className="w-full rounded-2xl shadow-xl object-cover"
               loading="lazy"
             />
@@ -732,32 +788,28 @@ function TestimonialCarouselV2({ images }: { images: string[] }) {
         ))}
       </div>
 
-      {active > 0 && (
-        <button
-          onClick={() => goTo(active - 1)}
-          className="absolute left-1 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur-sm shadow-md rounded-full flex items-center justify-center text-gray-600 z-10"
-          aria-label="Anterior"
-        >
-          <ChevronLeft size={20} />
-        </button>
-      )}
-      {active < images.length - 1 && (
-        <button
-          onClick={() => goTo(active + 1)}
-          className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur-sm shadow-md rounded-full flex items-center justify-center text-gray-600 z-10"
-          aria-label="Próximo"
-        >
-          <ChevronRight size={20} />
-        </button>
-      )}
+      <button
+        onClick={() => navigate(-1)}
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur-sm shadow-md rounded-full flex items-center justify-center text-gray-600 z-10"
+        aria-label="Anterior"
+      >
+        <ChevronLeft size={20} />
+      </button>
+      <button
+        onClick={() => navigate(1)}
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 backdrop-blur-sm shadow-md rounded-full flex items-center justify-center text-gray-600 z-10"
+        aria-label="Próximo"
+      >
+        <ChevronRight size={20} />
+      </button>
 
       <div className="flex justify-center items-center gap-2 mt-3">
         {images.map((_, i) => (
           <button
             key={i}
-            onClick={() => goTo(i)}
+            onClick={() => jumpTo(i)}
             className={`transition-all duration-300 rounded-full h-2 ${
-              i === active ? 'w-6 bg-brand-gold' : 'w-2 bg-gray-200'
+              i === pos ? 'w-6 bg-brand-gold' : 'w-2 bg-gray-200'
             }`}
             aria-label={`Ir para depoimento ${i + 1}`}
           />
