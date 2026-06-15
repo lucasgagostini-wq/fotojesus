@@ -1,58 +1,80 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, X } from "lucide-react";
+import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, X, Phone } from "lucide-react";
+
+// ── Assets ──────────────────────────────────────────────────────────────────
+import hugImg          from "../assets/jesus-moments/hug.png";
+import smilingImg      from "../assets/jesus-moments/smiling.png";
+import holdingHandsImg from "../assets/jesus-moments/holding-hands.png";
+import fieldImg        from "../assets/jesus-moments/field.png";
+
+import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
+import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
+
+import larBannerImg    from "../assets/institucional/lar-aconchego-banner.png";
+import larLogoImg      from "../assets/institucional/lar-aconchego-logo.png";
+import mpLogoImg       from "../assets/pagamento/mercado-pago-logo.png";
+
+import dep1 from "../assets/depoimentos/depoimento-1.jpeg";
+import dep2 from "../assets/depoimentos/depoimento-2.jpeg";
+import dep3 from "../assets/depoimentos/depoimento-3.jpeg";
+import dep4 from "../assets/depoimentos/depoimento-4.jpeg";
+import dep5 from "../assets/depoimentos/depoimento-5.jpeg";
 
 export const Route = createFileRoute("/v2")({
   component: AppFlowV2,
 });
 
-type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'pix';
+type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'phone' | 'pix';
 
 const STYLES = [
-  { id: 1, label: "Jesus te abraçando", icon: "🫂", description: "Jesus te abraçando" },
-  { id: 2, label: "Jesus ao seu lado sorrindo", icon: "😊", description: "Jesus ao seu lado sorrindo" },
-  { id: 3, label: "Jesus segurando sua mão", icon: "🤝", description: "Jesus segurando sua mão" },
-  { id: 4, label: "Momento no campo com Jesus", icon: "🌿", description: "Momento no campo com Jesus" },
+  { id: 1, label: "Jesus te abraçando",         img: hugImg,          description: "Jesus te abraçando" },
+  { id: 2, label: "Jesus ao seu lado sorrindo", img: smilingImg,      description: "Jesus ao seu lado sorrindo" },
+  { id: 3, label: "Jesus segurando sua mão",    img: holdingHandsImg, description: "Jesus segurando sua mão" },
+  { id: 4, label: "Momento no campo com Jesus", img: fieldImg,        description: "Momento no campo com Jesus" },
 ];
 
+const DEPOIMENTOS = [dep1, dep2, dep3, dep4, dep5];
+
+function maskPhone(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2)  return `(${digits}`;
+  if (digits.length <= 7)  return `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+  if (digits.length <= 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  return value;
+}
+
+// ── AppFlowV2 ─────────────────────────────────────────────────────────────────
 function AppFlowV2() {
-  const [currentStep, setCurrentStep] = useState<Step>('landing');
-  const [selectedStyles, setSelectedStyles] = useState<number[]>([]);
-  const [resultsSelected, setResultsSelected] = useState<number[]>([]);
-  const [showUpsell, setShowUpsell] = useState(false);
-  const [pixValue, setPixValue] = useState<number>(10.90);
-  const [pixLabel, setPixLabel] = useState<string>("1 imagem");
+  const [currentStep, setCurrentStep]           = useState<Step>('landing');
+  const [selectedStyles, setSelectedStyles]     = useState<number[]>([]);
+  const [resultsSelected, setResultsSelected]   = useState<number[]>([]);
+  const [showUpsell, setShowUpsell]             = useState(false);
+  const [pixValue, setPixValue]                 = useState<number>(10.90);
+  const [pixLabel, setPixLabel]                 = useState<string>("1 imagem");
   const [pixCodePlaceholder, setPixCodePlaceholder] = useState<string>("PIX_CODE_1_IMAGE");
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [showPhotoConfirm, setShowPhotoConfirm] = useState(false);
+  const [phoneNumber, setPhoneNumber]           = useState<string>("");
 
-  const nextStep = (step: Step) => {
-    window.scrollTo(0, 0);
-    setCurrentStep(step);
-  };
+  const nextStep = (step: Step) => { window.scrollTo(0, 0); setCurrentStep(step); };
 
-  const handleFileSelect = (url: string) => {
-    setUploadedPhotoUrl(url);
-    setShowPhotoConfirm(true);
-  };
-
-  const handlePhotoConfirm = () => {
-    setShowPhotoConfirm(false);
-    nextStep('styles');
-  };
-
-  const handlePhotoRetry = () => {
+  const handleFileSelect = (url: string) => { setUploadedPhotoUrl(url); setShowPhotoConfirm(true); };
+  const handlePhotoConfirm = () => { setShowPhotoConfirm(false); nextStep('styles'); };
+  const handlePhotoRetry   = () => {
     setShowPhotoConfirm(false);
     if (uploadedPhotoUrl) URL.revokeObjectURL(uploadedPhotoUrl);
     setUploadedPhotoUrl(null);
   };
 
+  const goToPhone = (value: number, label: string, code: string) => {
+    setPixValue(value); setPixLabel(label); setPixCodePlaceholder(code);
+    nextStep('phone');
+  };
+
   const handleResultsContinue = () => {
     if (resultsSelected.length === 4) {
-      setPixValue(43.60);
-      setPixLabel("4 imagens");
-      setPixCodePlaceholder("PIX_CODE_4_IMAGES");
-      nextStep('pix');
+      goToPhone(43.60, "4 imagens", "PIX_CODE_4_IMAGES");
     } else {
       setShowUpsell(true);
     }
@@ -60,60 +82,33 @@ function AppFlowV2() {
 
   return (
     <div className="theme-v2">
-      <div className="app-container font-nunito">
+      <div className="app-container">
         <div className="w-full max-w-[480px] min-h-screen relative overflow-x-hidden">
-          {currentStep === 'landing' && (
-            <LandingScreenV2 onNext={() => nextStep('upload')} />
+          {currentStep === 'landing'  && <LandingScreenV2  onNext={() => nextStep('upload')} />}
+          {currentStep === 'upload'   && <UploadScreenV2   onFileSelect={handleFileSelect} />}
+          {currentStep === 'styles'   && (
+            <StylesScreenV2 selectedIds={selectedStyles} setSelectedIds={setSelectedStyles} onNext={() => nextStep('loading')} />
           )}
-          {currentStep === 'upload' && (
-            <UploadScreenV2 onFileSelect={handleFileSelect} />
+          {currentStep === 'loading'  && <LoadingScreenV2  onFinish={() => nextStep('results')} />}
+          {currentStep === 'results'  && (
+            <ResultsScreenV2 selectedIds={resultsSelected} setSelectedIds={setResultsSelected} onContinue={handleResultsContinue} />
           )}
-          {currentStep === 'styles' && (
-            <StylesScreenV2
-              selectedIds={selectedStyles}
-              setSelectedIds={setSelectedStyles}
-              onNext={() => nextStep('loading')}
-            />
+          {currentStep === 'phone'    && (
+            <PhoneScreenV2 phone={phoneNumber} setPhone={setPhoneNumber} onNext={() => nextStep('pix')} />
           )}
-          {currentStep === 'loading' && (
-            <LoadingScreenV2 onFinish={() => nextStep('results')} />
-          )}
-          {currentStep === 'results' && (
-            <ResultsScreenV2
-              selectedIds={resultsSelected}
-              setSelectedIds={setResultsSelected}
-              onContinue={handleResultsContinue}
-            />
-          )}
-          {currentStep === 'pix' && (
-            <PixScreenV2 value={pixValue} label={pixLabel} pixCode={pixCodePlaceholder} />
+          {currentStep === 'pix'      && (
+            <PixScreenV2 value={pixValue} label={pixLabel} pixCode={pixCodePlaceholder} phoneNumber={phoneNumber} />
           )}
 
           {showPhotoConfirm && uploadedPhotoUrl && (
-            <PhotoConfirmModalV2
-              photoUrl={uploadedPhotoUrl}
-              onConfirm={handlePhotoConfirm}
-              onRetry={handlePhotoRetry}
-            />
+            <PhotoConfirmModalV2 photoUrl={uploadedPhotoUrl} onConfirm={handlePhotoConfirm} onRetry={handlePhotoRetry} />
           )}
 
           {showUpsell && (
             <UpsellModalV2
               selectedIds={resultsSelected}
-              onAccept={(value, label, code) => {
-                setPixValue(value);
-                setPixLabel(label);
-                setPixCodePlaceholder(code);
-                setShowUpsell(false);
-                nextStep('pix');
-              }}
-              onDecline={(value, label, code) => {
-                setPixValue(value);
-                setPixLabel(label);
-                setPixCodePlaceholder(code);
-                setShowUpsell(false);
-                nextStep('pix');
-              }}
+              onAccept={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
+              onDecline={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
               onClose={() => setShowUpsell(false)}
             />
           )}
@@ -123,7 +118,7 @@ function AppFlowV2() {
   );
 }
 
-/* ── LANDING ── */
+// ── LANDING ───────────────────────────────────────────────────────────────────
 function LandingScreenV2({ onNext }: { onNext: () => void }) {
   return (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
@@ -142,7 +137,6 @@ function LandingScreenV2({ onNext }: { onNext: () => void }) {
         </p>
       </header>
 
-      {/* Divider */}
       <div className="flex items-center gap-3 px-4">
         <div className="flex-1 h-px bg-brand-gold/20" />
         <span className="text-brand-gold/40 text-xs">✦</span>
@@ -151,11 +145,9 @@ function LandingScreenV2({ onNext }: { onNext: () => void }) {
 
       <div className="grid grid-cols-2 gap-3">
         {STYLES.map((style) => (
-          <div key={style.id} className="card-style relative aspect-[3/4]">
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <span className="text-5xl">{style.icon}</span>
-              <div className="w-8 h-px bg-brand-gold/30" />
-            </div>
+          <div key={style.id} className="card-style relative aspect-[3/4] overflow-hidden">
+            <img src={style.img} alt={style.label} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <div className="absolute bottom-0 inset-x-0 bg-white/90 py-2.5 px-2 text-[10px] font-semibold text-foreground text-center border-t border-brand-gold/20">
               {style.label}
             </div>
@@ -175,21 +167,18 @@ function LandingScreenV2({ onNext }: { onNext: () => void }) {
   );
 }
 
-/* ── UPLOAD ── */
+// ── UPLOAD ────────────────────────────────────────────────────────────────────
 function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void }) {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      onFileSelect(url);
+      onFileSelect(URL.createObjectURL(e.target.files[0]));
     }
   };
 
   return (
     <div className="content-wrapper animate-in fade-in duration-300">
       <header className="text-center">
-        <h1 className="text-2xl text-foreground">
-          Envie sua foto
-        </h1>
+        <h1 className="text-2xl text-foreground">Envie sua foto</h1>
         <p className="text-sm text-gray-400 mt-1">Passo 1 de 2</p>
       </header>
 
@@ -207,25 +196,20 @@ function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void 
           <strong className="text-foreground">Inteligência Artificial ultra realista</strong>.
           Para que fique parecida com você, a foto precisa seguir as orientações abaixo:
         </p>
-
         <p className="font-semibold text-foreground text-center text-sm">
           Uma <em>selfie do seu rosto</em>, bem iluminada.
         </p>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
-            <div className="aspect-square bg-gray-100 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200 overflow-hidden">
-              <div className="text-gray-400 text-[10px] font-bold text-center px-3 leading-tight">
-                [Foto de costas ou longe]
-              </div>
+            <div className="aspect-square rounded-2xl overflow-hidden border-2 border-gray-200">
+              <img src={uploadErradoImg} alt="Exemplo errado" className="w-full h-full object-cover" />
             </div>
             <span className="text-[11px] text-gray-400 font-bold text-center">Tire assim ✗</span>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="aspect-square rounded-2xl flex items-center justify-center border-2 border-brand-gold overflow-hidden bg-brand-blue-light/30">
-              <div className="text-brand-gold text-[10px] font-bold text-center px-3 leading-tight">
-                [Selfie de frente, bem iluminada]
-              </div>
+            <div className="aspect-square rounded-2xl overflow-hidden border-2 border-brand-gold">
+              <img src={uploadIdealImg} alt="Foto ideal" className="w-full h-full object-cover" />
             </div>
             <span className="text-[11px] text-brand-gold font-bold text-center">Foto ideal ✓</span>
           </div>
@@ -264,11 +248,9 @@ function UploadScreenV2({ onFileSelect }: { onFileSelect: (url: string) => void 
   );
 }
 
-/* ── PHOTO CONFIRM MODAL ── */
+// ── PHOTO CONFIRM MODAL ───────────────────────────────────────────────────────
 function PhotoConfirmModalV2({ photoUrl, onConfirm, onRetry }: {
-  photoUrl: string;
-  onConfirm: () => void;
-  onRetry: () => void;
+  photoUrl: string; onConfirm: () => void; onRetry: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -295,10 +277,8 @@ function PhotoConfirmModalV2({ photoUrl, onConfirm, onRetry }: {
               <p className="text-[11px] text-gray-500 font-bold text-center">Sua foto</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-brand-gold flex items-center justify-center bg-amber-50">
-                <p className="text-[9px] text-brand-gold font-bold text-center px-2 leading-tight">
-                  [IMAGE: selfie ideal de frente, bem iluminada]
-                </p>
+              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-brand-gold">
+                <img src={uploadIdealImg} alt="Foto ideal" className="w-full h-full object-cover" />
               </div>
               <p className="text-[11px] text-brand-gold font-bold text-center">Foto ideal ✓</p>
             </div>
@@ -325,21 +305,19 @@ function PhotoConfirmModalV2({ photoUrl, onConfirm, onRetry }: {
   );
 }
 
-/* ── STYLES ── */
-function StylesScreenV2({ selectedIds, setSelectedIds, onNext }: { selectedIds: number[], setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>, onNext: () => void }) {
+// ── STYLES ────────────────────────────────────────────────────────────────────
+function StylesScreenV2({ selectedIds, setSelectedIds, onNext }: {
+  selectedIds: number[]; setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>; onNext: () => void;
+}) {
   const toggleSelection = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
   };
 
   return (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
       <header>
         <p className="text-xs font-bold tracking-[0.2em] uppercase text-brand-gold/70 mb-1">Passo 2 de 2</p>
-        <h1 className="text-2xl text-foreground">
-          Escolha os estilos
-        </h1>
+        <h1 className="text-2xl text-foreground">Escolha os estilos</h1>
         <p className="text-gray-500 mt-2 text-sm">
           Clique nas imagens que você mais gostou. Se gostou das 4, selecione as 4.
         </p>
@@ -352,19 +330,19 @@ function StylesScreenV2({ selectedIds, setSelectedIds, onNext }: { selectedIds: 
             <div
               key={style.id}
               onClick={() => toggleSelection(style.id)}
-              className={`card-style relative aspect-[3/4] transition-all cursor-pointer ${
+              className={`card-style relative aspect-[3/4] transition-all cursor-pointer overflow-hidden ${
                 isSelected ? "border-[3px] border-brand-gold scale-[1.02]" : "border-[3px] border-transparent"
               }`}
             >
+              <img src={style.img} alt={style.label} className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
               {isSelected && (
                 <div className="absolute top-2 right-2 bg-brand-gold text-white rounded-full p-0.5 z-10 shadow-md">
                   <Check size={14} strokeWidth={4} />
                 </div>
               )}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#FFF8EE]">
-                <span className="text-5xl">{style.icon}</span>
-                <div className="w-8 h-px bg-brand-gold/30" />
-              </div>
+
               <div className="absolute bottom-0 inset-x-0 bg-white/90 py-2 px-2 text-[10px] font-semibold text-foreground text-center border-t border-brand-gold/15">
                 {style.label}
               </div>
@@ -384,7 +362,7 @@ function StylesScreenV2({ selectedIds, setSelectedIds, onNext }: { selectedIds: 
   );
 }
 
-/* ── LOADING ── */
+// ── LOADING ───────────────────────────────────────────────────────────────────
 function LoadingScreenV2({ onFinish }: { onFinish: () => void }) {
   const [progress, setProgress] = useState(0);
 
@@ -393,15 +371,10 @@ function LoadingScreenV2({ onFinish }: { onFinish: () => void }) {
     const interval = 20;
     const steps = duration / interval;
     const increment = 90 / steps;
-
     const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) { clearInterval(timer); return 90; }
-        return prev + increment;
-      });
+      setProgress((prev) => { if (prev >= 90) { clearInterval(timer); return 90; } return prev + increment; });
     }, interval);
-
-    const finishTimer = setTimeout(() => { onFinish(); }, duration);
+    const finishTimer = setTimeout(() => onFinish(), duration);
     return () => { clearInterval(timer); clearTimeout(finishTimer); };
   }, [onFinish]);
 
@@ -410,7 +383,6 @@ function LoadingScreenV2({ onFinish }: { onFinish: () => void }) {
       <div className="text-[72px] mb-6" style={{ animation: 'pulse 2s ease-in-out infinite' }}>🙏</div>
       <h2 className="text-2xl text-foreground mb-1">Criando sua imagem...</h2>
       <p className="text-gray-400 text-sm mb-8">Processando com IA · Aguarde</p>
-
       <div className="w-[70%] h-3 bg-[#E8D5A8] rounded-full overflow-hidden mb-4">
         <div
           className="h-full progress-bar-v2 rounded-full transition-all ease-in-out duration-200"
@@ -422,12 +394,12 @@ function LoadingScreenV2({ onFinish }: { onFinish: () => void }) {
   );
 }
 
-/* ── RESULTS ── */
-function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selectedIds: number[], setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>, onContinue: () => void }) {
+// ── RESULTS ───────────────────────────────────────────────────────────────────
+function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: {
+  selectedIds: number[]; setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>; onContinue: () => void;
+}) {
   const toggleSelection = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
   };
 
   const hasSelection = selectedIds.length > 0;
@@ -446,9 +418,7 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
 
       {/* Lar Aconchego Banner */}
       <div className="rounded-2xl overflow-hidden border-2 border-brand-gold/60 shadow-sm">
-        <div className="w-full h-36 bg-amber-50 flex items-center justify-center text-[10px] text-amber-400 font-bold text-center p-4 border-b border-brand-gold/20">
-          [IMAGE: Lar Aconchego & Fé — foto da instituição]
-        </div>
+        <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-36 object-cover" />
         <div className="bg-white/80 p-3 text-center">
           <p className="text-brand-gold font-bold text-sm leading-snug">
             💛 100% dos valores arrecadados serão doados para o{" "}
@@ -457,7 +427,6 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
         </div>
       </div>
 
-      {/* Instructions */}
       <div className="text-center">
         <p className="text-sm font-bold text-foreground">
           👆 Toque em <span className="text-brand-gold font-extrabold uppercase">CADA</span> imagem que você quer liberar
@@ -479,15 +448,17 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
                   isSelected ? "border-[3px] border-brand-gold scale-[1.02]" : "border-[3px] border-transparent"
                 }`}
               >
-                <div className="absolute inset-0 bg-[#f5ead0] blur-sm opacity-70" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-amber-100/50 to-yellow-50/20" />
+                <img
+                  src={style.img}
+                  alt={style.label}
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
+                    isSelected ? "blur-none scale-100" : "blur-sm scale-105"
+                  }`}
+                />
 
-                <div className="absolute top-2 left-2 flex flex-col gap-0.5 z-10">
+                <div className="absolute top-2 left-2 z-10">
                   <span className="bg-black/65 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-sm backdrop-blur-sm">
                     Apenas R$ 10,90
-                  </span>
-                  <span className="text-[6px] text-amber-800 font-bold uppercase tracking-tighter">
-                    Alta qualidade para baixar
                   </span>
                 </div>
 
@@ -499,32 +470,23 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
                   </div>
                 )}
 
-                {/* V2: cores quentes em vez de azul frio */}
                 <div className={`absolute bottom-0 inset-x-0 py-1.5 text-[9px] font-black text-center uppercase tracking-wide transition-colors ${
                   isSelected ? "bg-[#2C1A0E] text-brand-gold" : "bg-[#8B6914] text-white"
                 }`}>
                   {isSelected ? "SUA ESCOLHA 💛" : "💛 LEVE TAMBÉM"}
                 </div>
               </div>
-              <p className="text-[10px] text-center font-semibold text-gray-500">
-                {style.description}
-              </p>
+              <p className="text-[10px] text-center font-semibold text-gray-500">{style.description}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Trust bullets */}
       <div className="flex flex-col gap-1.5 bg-amber-50/60 rounded-xl p-3 border border-amber-100">
-        <p className="text-xs text-amber-700 font-medium flex items-center gap-2">
-          ⏳ Sua imagem fica disponível por tempo limitado
-        </p>
-        <p className="text-xs text-foreground font-medium flex items-center gap-2">
-          ✝️ Imagem pronta para você guardar para sempre
-        </p>
+        <p className="text-xs text-amber-700 font-medium flex items-center gap-2">⏳ Sua imagem fica disponível por tempo limitado</p>
+        <p className="text-xs text-foreground font-medium flex items-center gap-2">✝️ Imagem pronta para você guardar para sempre</p>
       </div>
 
-      {/* Conditional CTA */}
       {hasSelection && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-white/80 border border-brand-gold/30 rounded-2xl p-4 text-center shadow-sm">
@@ -544,9 +506,7 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
             <span className="text-[11px] font-medium opacity-90">Pagamento rápido e seguro via Pix</span>
           </button>
 
-          <p className="text-center text-xs text-gray-400 font-medium mt-2">
-            Acesso imediato após o pagamento
-          </p>
+          <p className="text-center text-xs text-gray-400 font-medium mt-2">Acesso imediato após o pagamento</p>
         </div>
       )}
 
@@ -559,14 +519,17 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
         </div>
         <p className="text-[11px] font-medium text-gray-400 text-center mb-4">Centenas de famílias já guardaram seu momento com Jesus</p>
         <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar px-1">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="min-w-[240px] aspect-[4/5] bg-amber-50 rounded-2xl flex items-center justify-center text-amber-300 font-bold text-[10px] shadow-sm border border-amber-100 shrink-0">
-              [print WhatsApp cliente {i}]
-            </div>
+          {DEPOIMENTOS.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`Depoimento ${i + 1}`}
+              className="min-w-[240px] w-[240px] aspect-[4/5] object-cover rounded-2xl shadow-sm shrink-0 border border-amber-100"
+            />
           ))}
         </div>
         <div className="flex justify-center gap-1.5 mt-2">
-          {[0, 1, 2, 3, 4].map((i) => (
+          {DEPOIMENTOS.map((_, i) => (
             <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-brand-gold' : 'bg-gray-200'}`} />
           ))}
         </div>
@@ -575,52 +538,38 @@ function ResultsScreenV2({ selectedIds, setSelectedIds, onContinue }: { selected
   );
 }
 
-/* ── UPSELL MODAL ── */
+// ── UPSELL MODAL ──────────────────────────────────────────────────────────────
 function UpsellModalV2({ selectedIds, onAccept, onDecline, onClose }: {
-  selectedIds: number[],
-  onAccept: (value: number, label: string, code: string) => void,
-  onDecline: (value: number, label: string, code: string) => void,
-  onClose: () => void
+  selectedIds: number[];
+  onAccept:  (value: number, label: string, code: string) => void;
+  onDecline: (value: number, label: string, code: string) => void;
+  onClose: () => void;
 }) {
   const count = selectedIds.length;
   const selectedStyles = STYLES.filter(s => selectedIds.includes(s.id));
 
-  let popupData = {
-    title: "🔥 PROMOÇÃO RELÂMPAGO!",
-    upsellText: "",
-    remainingCount: 4 - count,
-    strikethrough: "R$ 43,60",
-    offerPrice: 0,
-    economy: 0,
-    acceptValue: 0,
-    acceptLabel: "4 imagens",
-    acceptCode: "PIX_CODE_4_IMAGES",
-    declineValue: count * 10.90,
-    declineLabel: `${count} imagem(ns)`,
-    declineCode: `PIX_CODE_${count}_IMAGES`
-  };
-
-  if (count === 1) {
-    popupData.upsellText = "Acrescente as outras 3 fotos com Jesus que você não selecionou por apenas";
-    popupData.offerPrice = 22.60;
-    popupData.economy = 21.00;
-    popupData.acceptValue = 22.60;
-  } else if (count === 2) {
-    popupData.upsellText = "Acrescente as outras 2 fotos com Jesus que você não selecionou por apenas";
-    popupData.offerPrice = 29.60;
-    popupData.economy = 14.00;
-    popupData.acceptValue = 29.60;
-  } else if (count === 3) {
-    popupData.upsellText = "Acrescente a outra foto com Jesus que você não selecionou por apenas";
-    popupData.offerPrice = 36.60;
-    popupData.economy = 7.00;
-    popupData.acceptValue = 36.60;
-  }
+  const popupData = (() => {
+    const base = {
+      title: "🔥 PROMOÇÃO RELÂMPAGO!",
+      strikethrough: "R$ 43,60",
+      acceptLabel: "4 imagens",
+      acceptCode: "PIX_CODE_4_IMAGES",
+      declineValue: count * 10.90,
+      declineLabel: `${count} imagem(ns)`,
+      declineCode: `PIX_CODE_${count}_IMAGES`,
+      upsellText: "",
+      offerPrice: 0,
+      economy: 0,
+      acceptValue: 0,
+    };
+    if (count === 1) return { ...base, upsellText: "Acrescente as outras 3 fotos com Jesus que você não selecionou por apenas", offerPrice: 22.60, economy: 21.00, acceptValue: 22.60 };
+    if (count === 2) return { ...base, upsellText: "Acrescente as outras 2 fotos com Jesus que você não selecionou por apenas", offerPrice: 29.60, economy: 14.00, acceptValue: 29.60 };
+    return { ...base, upsellText: "Acrescente a outra foto com Jesus que você não selecionou por apenas", offerPrice: 36.60, economy: 7.00, acceptValue: 36.60 };
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[400px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-        {/* Header */}
         <div className="p-4 relative text-center" style={{ background: 'linear-gradient(135deg, #F5A623 0%, #C8860A 100%)' }}>
           <h3 className="text-white font-black text-lg tracking-tight">{popupData.title}</h3>
           <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white">
@@ -629,7 +578,6 @@ function UpsellModalV2({ selectedIds, onAccept, onDecline, onClose }: {
         </div>
 
         <div className="p-5 flex flex-col gap-4 text-center">
-          {/* Items */}
           <div className="text-left">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 text-center">Você está levando</p>
             <div className="flex flex-col gap-1.5">
@@ -642,37 +590,28 @@ function UpsellModalV2({ selectedIds, onAccept, onDecline, onClose }: {
             </div>
           </div>
 
-          {/* Offer box */}
           <div className="border-2 border-brand-gold/40 border-dashed bg-amber-50/50 rounded-2xl p-4">
-            <p className="text-xs font-bold text-gray-600 leading-relaxed mb-1">
-              {popupData.upsellText}
-            </p>
+            <p className="text-xs font-bold text-gray-600 leading-relaxed mb-1">{popupData.upsellText}</p>
             <p className="text-2xl font-black text-brand-gold">R$ 3,90 cada!</p>
           </div>
 
-          {/* Price breakdown */}
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-medium text-gray-400">Aceitando agora você paga só</p>
             <p className="text-sm text-gray-300 line-through font-bold">De {popupData.strikethrough}</p>
-            <p className="text-3xl font-black text-brand-gold">R$ {popupData.offerPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            <p className="text-3xl font-black text-brand-gold">
+              R$ {popupData.offerPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
             <p className="text-xs font-bold text-gray-400 italic">pelas 4 imagens</p>
             <p className="text-brand-gold font-bold text-sm mt-1">
               👍 Economia de R$ {popupData.economy.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
 
-          {/* Buttons */}
           <div className="flex flex-col gap-3">
-            <button
-              onClick={() => onAccept(popupData.acceptValue, popupData.acceptLabel, popupData.acceptCode)}
-              className="btn-primary py-4 text-base"
-            >
+            <button onClick={() => onAccept(popupData.acceptValue, popupData.acceptLabel, popupData.acceptCode)} className="btn-primary py-4 text-base">
               Sim, quero todas! 💕
             </button>
-            <button
-              onClick={() => onDecline(popupData.declineValue, popupData.declineLabel, popupData.declineCode)}
-              className="text-sm text-gray-400 underline font-bold"
-            >
+            <button onClick={() => onDecline(popupData.declineValue, popupData.declineLabel, popupData.declineCode)} className="text-sm text-gray-400 underline font-bold">
               Não, obrigado (continuar com R$ {popupData.declineValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
             </button>
           </div>
@@ -682,15 +621,86 @@ function UpsellModalV2({ selectedIds, onAccept, onDecline, onClose }: {
   );
 }
 
-/* ── PIX ── */
-function PixScreenV2({ value, label, pixCode }: { value: number, label: string, pixCode: string }) {
+// ── PHONE SCREEN ──────────────────────────────────────────────────────────────
+function PhoneScreenV2({ phone, setPhone, onNext }: {
+  phone: string;
+  setPhone: React.Dispatch<React.SetStateAction<string>>;
+  onNext: () => void;
+}) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(maskPhone(e.target.value));
+  };
+
+  const digits = phone.replace(/\D/g, "");
+  const isValid = digits.length === 11;
+
+  return (
+    <div className="content-wrapper animate-in fade-in duration-300">
+      <div className="flex flex-col items-center text-center gap-3">
+        <div className="w-20 h-20 bg-brand-gold/10 rounded-full flex items-center justify-center border border-brand-gold/20">
+          <Phone size={36} className="text-brand-gold" />
+        </div>
+        <h1 className="text-2xl text-foreground leading-tight">Quase lá! 🙌</h1>
+        <p className="text-gray-500 text-sm leading-relaxed px-2">
+          Informe seu WhatsApp para receber suas imagens automaticamente após o pagamento.
+        </p>
+      </div>
+
+      <div className="bg-white/70 rounded-2xl p-5 border border-brand-gold/20 flex flex-col gap-3">
+        <label className="text-sm font-bold text-foreground">Seu número de WhatsApp:</label>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">📱</span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={phone}
+            onChange={handleChange}
+            placeholder="(11) 99999-9999"
+            className={`w-full pl-10 pr-4 py-4 rounded-xl border-2 text-base font-bold text-foreground placeholder:text-gray-300 outline-none transition-colors bg-white ${
+              isValid ? "border-brand-gold bg-amber-50/30" : "border-gray-200"
+            }`}
+          />
+        </div>
+        <p className="text-[11px] text-gray-400 font-medium">Inclua o DDD (ex: 11 para São Paulo)</p>
+      </div>
+
+      <div className="bg-amber-50/80 rounded-2xl p-4 border border-amber-200/60 flex items-start gap-3">
+        <span className="text-xl shrink-0">📲</span>
+        <p className="text-xs font-medium text-gray-600 leading-relaxed">
+          Após confirmar o pagamento via PIX, suas imagens serão enviadas automaticamente para este número no WhatsApp.{" "}
+          <strong className="text-gray-700">A entrega leva apenas alguns minutos.</strong>
+        </p>
+      </div>
+
+      <div className="bg-white/60 rounded-2xl p-4 border border-brand-gold/15 flex items-start gap-3">
+        <ShieldCheck size={18} className="text-green-500 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-gray-500 leading-relaxed">
+          Seus dados são usados apenas para entrega das imagens e nunca serão compartilhados com terceiros.
+        </p>
+      </div>
+
+      <button
+        onClick={onNext}
+        disabled={!isValid}
+        className={`btn-primary flex items-center justify-center gap-2 transition-opacity ${
+          isValid ? "opacity-100" : "opacity-40"
+        }`}
+      >
+        CONTINUAR PARA O PAGAMENTO <ChevronRight size={18} strokeWidth={3} />
+      </button>
+    </div>
+  );
+}
+
+// ── PIX SCREEN ────────────────────────────────────────────────────────────────
+function PixScreenV2({ value, label, pixCode, phoneNumber }: {
+  value: number; label: string; pixCode: string; phoneNumber: string;
+}) {
   const [timeLeft, setTimeLeft] = useState(15 * 60);
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
+    const timer = setInterval(() => setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0)), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -708,28 +718,19 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
 
   return (
     <div className="content-wrapper animate-in fade-in duration-300">
-      {/* Header */}
       <div className="flex flex-col items-center mb-2">
-        <div className="w-48 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-[10px] text-amber-400 font-bold mb-4 border border-amber-100">
-          [IMAGE: Mercado Pago logo]
-        </div>
-        <h1 className="text-xl text-foreground tracking-tight">
-          Pagamento via Pix
-        </h1>
+        <img src={mpLogoImg} alt="Mercado Pago" className="h-10 object-contain mb-4" />
+        <h1 className="text-xl text-foreground tracking-tight">Pagamento via Pix</h1>
       </div>
 
-      {/* Lar Aconchego */}
       <div className="bg-white/70 rounded-2xl p-4 flex items-center gap-4 border border-brand-gold/20 shadow-sm">
-        <div className="w-12 h-12 bg-amber-50 rounded-xl shrink-0 flex items-center justify-center text-[8px] text-amber-400 font-bold text-center leading-tight border border-amber-100">
-          [LOGO]
-        </div>
+        <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-12 h-12 rounded-xl object-cover shrink-0 border border-brand-gold/20" />
         <p className="text-[11px] leading-relaxed text-gray-600 font-medium">
           💛 Obrigado por ajudar! Sua compra leva amor e acolhimento aos idosos do{" "}
           <span className="underline font-bold">Lar Aconchego & Fé</span>
         </p>
       </div>
 
-      {/* Amount */}
       <div className="text-center py-2">
         <p className="text-base font-bold text-gray-500">{label}</p>
         <p className="text-3xl font-black text-brand-gold mt-0.5">
@@ -737,7 +738,6 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
         </p>
       </div>
 
-      {/* Trust badges */}
       <div className="flex flex-col gap-2">
         <div className="bg-white/70 border border-green-100 rounded-2xl p-3.5 flex items-center gap-3">
           <ShieldCheck className="text-green-500 shrink-0" size={18} />
@@ -751,7 +751,6 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
         </div>
       </div>
 
-      {/* Copy PIX */}
       <div>
         <button onClick={copyPix} className="btn-primary flex items-center justify-center gap-2">
           <Copy size={18} /> COPIAR CÓDIGO PIX
@@ -759,7 +758,6 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
         <p className="text-[10px] text-gray-300 text-center mt-2 font-mono">[{pixCode}]</p>
       </div>
 
-      {/* QR Code */}
       <div className="text-center">
         <p className="text-sm font-semibold text-gray-400 mb-4">Ou escaneie o QR Code:</p>
         <div className="mx-auto w-48 h-48 bg-white border-4 border-brand-gold/20 shadow-md rounded-2xl flex items-center justify-center text-gray-300 font-bold text-[10px] text-center p-4">
@@ -767,11 +765,10 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
         </div>
       </div>
 
-      {/* Info */}
       <div className="flex flex-col gap-3">
         <div className="bg-white/70 rounded-2xl p-4 flex items-start gap-3 border border-gray-100">
           <Check className="text-green-500 mt-0.5 shrink-0" size={16} />
-          <p className="text-xs font-bold text-gray-500 leading-snug">
+          <p className="text-xs font-bold text-gray-600 leading-snug">
             A cobrança aparecerá no app do seu banco como "Felipe Hans"
           </p>
         </div>
@@ -783,6 +780,9 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
             <p className="text-xs font-bold text-gray-600 leading-snug">
               Após o pagamento, suas imagens serão enviadas automaticamente para o seu WhatsApp.
             </p>
+            {phoneNumber && (
+              <p className="text-xs font-black text-brand-gold mt-1">📲 {phoneNumber}</p>
+            )}
             <p className="text-[11px] font-medium text-gray-400 mt-1.5 leading-snug">
               ⏱️ A entrega acontece em poucos minutos. Basta abrir o WhatsApp e conferir!
             </p>
@@ -790,7 +790,7 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
         </div>
       </div>
 
-      {/* Social proof carousel */}
+      {/* Social proof */}
       <div className="mb-24">
         <div className="flex items-center gap-3 mb-3">
           <div className="flex-1 h-px bg-brand-gold/20" />
@@ -798,15 +798,17 @@ function PixScreenV2({ value, label, pixCode }: { value: number, label: string, 
           <div className="flex-1 h-px bg-brand-gold/20" />
         </div>
         <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar px-1">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="min-w-[260px] aspect-[4/3] bg-amber-50 rounded-2xl flex items-center justify-center text-amber-300 font-bold text-[10px] border border-amber-100 shrink-0">
-              [print WhatsApp {i}]
-            </div>
+          {DEPOIMENTOS.slice(0, 3).map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`Depoimento ${i + 1}`}
+              className="min-w-[260px] w-[260px] aspect-[4/3] object-cover rounded-2xl shadow-sm shrink-0 border border-amber-100"
+            />
           ))}
         </div>
       </div>
 
-      {/* Sticky footer */}
       <div className="fixed bottom-0 inset-x-0 bg-white/85 backdrop-blur-md border-t border-brand-gold/20 py-4 flex items-center justify-center gap-3">
         <div className="w-4 h-4 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
         <span className="text-xs font-bold text-gray-500">Aguardando confirmação do pagamento...</span>
