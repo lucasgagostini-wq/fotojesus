@@ -24,6 +24,40 @@ const COMMANDS: Record<string, CommandDef> = {
       }
     },
   },
+  "discord-test": {
+    description: "Envia mensagem de teste ao webhook Discord",
+    run: async (_args, ctx) => {
+      ctx.push("info", "Enviando mensagem de teste para o Discord...");
+      try {
+        const res = await fetch("/api/bmth/admin-cmd", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command: "discord-test" }),
+        });
+        const data = await res.json() as {
+          ok: boolean;
+          message?: string;
+          error?: string;
+          httpStatus?: number;
+          sentAt?: string;
+          webhookConfigured?: boolean;
+        };
+        if (!data.ok) {
+          ctx.push("err", `✗ ${data.error ?? "Falha ao enviar mensagem"}`);
+          if (data.webhookConfigured === false) {
+            ctx.push("err", "  ❌ DISCORD_WEBHOOK_URL não configurado");
+          }
+        } else {
+          ctx.push("ok",   `✓ Mensagem enviada com sucesso`);
+          ctx.push("info", `  HTTP Status : ${data.httpStatus ?? "—"}`);
+          ctx.push("info", `  Horário     : ${data.sentAt ?? "—"}`);
+        }
+      } catch (err) {
+        ctx.push("err", `✗ ${err instanceof Error ? err.message : "Erro de rede"}`);
+      }
+    },
+  },
   "reset-data": {
     description: "Apaga TODOS os dados (orders + order_events)",
     run: async (_args, ctx) => {

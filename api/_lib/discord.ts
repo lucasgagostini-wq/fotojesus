@@ -65,6 +65,54 @@ async function send(embed: Embed): Promise<void> {
   }
 }
 
+// ─────────────────── Teste de integração (admin console) ─────────────────────
+
+/**
+ * Envia uma mensagem de teste ao webhook Discord e retorna o status HTTP.
+ * Diferente de `send`, esta função lança em caso de falha para que o chamador
+ * possa reportar o erro ao operador.
+ */
+export async function sendTest(): Promise<{ httpStatus: number; sentAt: string }> {
+  const url = process.env.DISCORD_WEBHOOK_URL;
+  if (!url) throw new Error("DISCORD_WEBHOOK_URL não configurado neste ambiente.");
+
+  const sentAt = new Date().toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+    timeZone: "America/Sao_Paulo",
+  });
+
+  const body = JSON.stringify({
+    embeds: [
+      {
+        title: "🚀 TESTE DE INTEGRAÇÃO BMTH",
+        color: 0x00c06e,
+        fields: [
+          { inline: true,  name: "Ambiente",  value: "Produção" },
+          { inline: true,  name: "Data/Hora", value: sentAt },
+          { inline: false, name: "Projeto",   value: "Sua Foto com Jesus" },
+          { inline: false, name: "Origem",    value: "Painel BMTH → Console Administrativo" },
+          { inline: false, name: "Status",    value: "✅ Webhook Discord funcionando corretamente." },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+
+  const res = await fetch(url, {
+    body,
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Discord retornou ${res.status}: ${detail.slice(0, 200)}`);
+  }
+
+  return { httpStatus: res.status, sentAt };
+}
+
 // ─────────────────────────── Evento 1 — PIX gerado ────────────────────────────
 
 export async function notifyPixGenerated(params: {

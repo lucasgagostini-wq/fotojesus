@@ -14,6 +14,7 @@ import {
   startOfTodaySaoPauloISO,
 } from "./admin-db.js";
 import { ORDER_SOURCE_BUCKET } from "../../src/lib/order-contract.js";
+import { sendTest as discordSendTest } from "./discord.js";
 
 const PAGE_SIZE = 20;
 
@@ -301,6 +302,31 @@ export async function handleAdminCmd(req: VercelRequest, res: VercelResponse) {
         const message = err instanceof Error ? err.message : "Internal error";
         console.error("[bmth/admin-cmd/reset-data]", err);
         return res.status(500).json({ error: message });
+      }
+    }
+
+    case "discord-test": {
+      const webhookConfigured = Boolean(process.env.DISCORD_WEBHOOK_URL);
+      if (!webhookConfigured) {
+        return res.status(200).json({
+          ok: false,
+          error: "DISCORD_WEBHOOK_URL não configurado neste ambiente.",
+        });
+      }
+      try {
+        const { httpStatus, sentAt } = await discordSendTest();
+        console.log(`[bmth/admin-cmd/discord-test] status=${httpStatus} by ${session.u}`);
+        return res.status(200).json({
+          ok: true,
+          httpStatus,
+          message: `Mensagem enviada com sucesso. HTTP ${httpStatus} — ${sentAt}`,
+          sentAt,
+          webhookConfigured,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Erro desconhecido";
+        console.error("[bmth/admin-cmd/discord-test]", err);
+        return res.status(200).json({ ok: false, error: message, webhookConfigured });
       }
     }
 
