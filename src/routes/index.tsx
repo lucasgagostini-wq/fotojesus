@@ -892,7 +892,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               <img
                 src={style.imgPixelado}
                 alt={style.label}
-                className="absolute inset-0 w-full h-full object-contain bg-gray-900"
+                className="absolute inset-0 w-full h-full object-cover"
               />
 
               {/* Badge preço — canto superior esquerdo */}
@@ -1257,7 +1257,7 @@ function TestimonialCarousel({ images }: { images: string[] }) {
     const track = trackRef.current;
     if (!track || !w) return;
     track.style.transition = animate ? 'transform 0.65s ease-in-out' : 'none';
-    track.style.transform = `translateX(-${extIdx * (w / 2)}px)`;
+    track.style.transform = `translateX(-${extIdx * w}px)`;
   };
 
   useEffect(() => {
@@ -1306,7 +1306,7 @@ function TestimonialCarousel({ images }: { images: string[] }) {
           <div
             key={i}
             className="shrink-0 px-1.5"
-            style={{ width: containerW > 0 ? `${containerW / 2}px` : '50%' }}
+            style={{ width: containerW > 0 ? `${containerW}px` : '100%' }}
           >
             <img
               src={src}
