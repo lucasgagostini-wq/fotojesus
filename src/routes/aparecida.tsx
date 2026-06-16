@@ -899,17 +899,15 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
       </header>
 
       {/* Lar Aconchego Banner */}
-      <div className="rounded-2xl overflow-hidden shadow-lg">
-        <div className="relative bg-[#0a2d6e]">
-          <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-36 object-cover object-center opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a2d6e] via-[#0a2d6e]/60 to-transparent" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 gap-2">
-            <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-10 h-10 rounded-lg object-cover shadow-md" />
-            <p className="text-white font-black text-sm leading-snug text-center drop-shadow-sm">
-              💛 100% dos valores arrecadados serão doados para o{" "}
-              <span className="underline font-extrabold">Lar Aconchego & Fé</span>
-            </p>
-          </div>
+      <div className="rounded-2xl overflow-hidden shadow-lg bg-[#0a2d6e]">
+        <div className="p-2.5">
+          <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full rounded-xl object-contain" />
+        </div>
+        <div className="px-4 pb-4 pt-1 text-center">
+          <p className="text-white font-bold text-base leading-snug">
+            💛 100% dos valores arrecadados serão doados para o{" "}
+            <span className="underline font-extrabold">Lar Aconchego &amp; Fé</span>
+          </p>
         </div>
       </div>
 
@@ -1526,29 +1524,35 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
       </div>
 
       <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100">
-        <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-        <p className="text-[11px] leading-tight text-gray-600 font-medium">
+        <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+        <p className="text-sm leading-snug text-gray-700 font-medium">
           💛 Obrigado por ajudar! Sua compra leva amor e acolhimento aos idosos do{" "}
-          <span className="underline font-bold">Lar Aconchego & Fé</span>
+          <span className="underline font-bold">Lar Aconchego &amp; Fé</span>
         </p>
       </div>
 
       <div className="text-center">
-        <p className="text-lg font-bold text-gray-600">
+        <p className="text-xl font-bold text-gray-700">
           {label} — <span className="text-brand-gold font-black">R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         </p>
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center gap-3">
-          <ShieldCheck className="text-green-500 shrink-0" size={20} />
-          <p className="text-xs font-bold text-gray-600">Pagamento processado com segurança pelo Mercado Pago</p>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+            <ShieldCheck className="text-green-600" size={24} />
+          </div>
+          <p className="text-sm font-bold text-green-800 leading-snug">
+            Pagamento processado com segurança pelo <span className="font-black">Mercado Pago</span>
+          </p>
         </div>
         {!isCreating && pixCode && (
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center gap-3">
-            <Clock className="text-orange-400 shrink-0" size={20} />
-            <p className="text-xs font-bold text-gray-600">
-              Este Pix expira em <span className="text-orange-500 font-black">{formatTime(timeLeft)}</span>
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+              <Clock className="text-orange-500" size={24} />
+            </div>
+            <p className="text-sm font-bold text-gray-700 leading-snug">
+              Este Pix expira em <span className="text-orange-600 font-black">{formatTime(timeLeft)}</span>
             </p>
           </div>
         )}
@@ -1573,7 +1577,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
           </div>
 
           <div className="text-center">
-            <p className="text-sm font-bold text-gray-500">Ou escaneie o QR Code:</p>
+            <p className="text-base font-bold text-gray-600">Ou escaneie o QR Code:</p>
             <div className="mt-4 mx-auto w-48 h-48 bg-white border-4 border-white shadow-lg rounded-xl flex items-center justify-center">
               {qrBase64 ? (
                 <img
@@ -1592,27 +1596,30 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
       )}
 
       <div className="flex flex-col gap-3">
-        <div className="bg-white rounded-2xl p-4 flex items-start gap-3 shadow-sm border border-gray-50">
-          <Check className="text-green-500 mt-1 shrink-0" size={18} />
-          <p className="text-xs font-bold text-gray-500 leading-snug">
-            A cobrança aparecerá no app do seu banco como "Lucas Gonçalves Agostini"
-          </p>
+        <div className="bg-white rounded-2xl p-4 flex items-start gap-3.5 shadow-sm border border-gray-100">
+          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+            <Check className="text-green-600" size={20} strokeWidth={3} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-700 leading-snug">
+              A cobrança aparecerá no app do seu banco como:
+            </p>
+            <p className="text-lg font-black text-gray-900 leading-tight mt-1">Lucas Gonçalves Agostini</p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 flex items-start gap-4 shadow-sm border border-gray-50 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
-          <div className="text-2xl mt-1 shrink-0">📱</div>
+        <div className="bg-white rounded-2xl p-5 flex items-start gap-4 shadow-sm border border-gray-100 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#25D366]" />
+          <div className="text-2xl mt-0.5 shrink-0">📲</div>
           <div>
-            <p className="text-xs font-bold text-gray-600 leading-snug">
-              Depois da aprovacao, o pedido fica salvo para entrega futura e pode ser reenviado sem depender desta aba.
+            <p className="text-sm font-bold text-gray-700 leading-snug">
+              Após o pagamento, sua imagem será enviada automaticamente para o seu WhatsApp
+              {phoneNumber ? (
+                <> <span className="font-black text-gray-900">{phoneNumber}</span></>
+              ) : ""}.
             </p>
-            {phoneNumber && (
-              <p className="text-xs font-black text-brand-gold mt-1">
-                📲 {phoneNumber}
-              </p>
-            )}
-            <p className="text-[11px] font-bold text-gray-400 mt-2 leading-snug">
-              Guarde o codigo de recuperacao e o numero informado para localizar seu pedido mais tarde.
+            <p className="text-sm font-bold text-gray-700 leading-snug mt-2">
+              <span className="font-black">A entrega acontece em poucos minutos.</span> Basta abrir o WhatsApp e conferir!
             </p>
           </div>
         </div>
@@ -1629,7 +1636,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
       {!isCreating && pixCode && paymentStatus === 'pending' && (
         <div className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center justify-center gap-3" style={{ paddingTop: '12px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
           <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-bold text-gray-500">Aguardando confirmação do pagamento...</span>
+          <span className="text-sm font-bold text-gray-600">Aguardando confirmação do pagamento...</span>
         </div>
       )}
 
