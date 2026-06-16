@@ -5,8 +5,8 @@ import {
   createSupabaseAdminClient,
   getRequiredEnv,
   syncOrderPaymentStatus,
-  type OrderStatusRecord,
 } from "./_lib/payment-flow.js";
+import { writeOrderEvent } from "./_lib/orders.js";
 
 function getWebhookPaymentId(req: VercelRequest): null | string {
   const queryDataId = req.query["data.id"];
@@ -94,7 +94,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, mp_payment_id, mp_status, paid_at, status_token")
+      .select(
+        "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source_original_path, source_preview_path",
+      )
       .eq("id", externalReference)
       .single();
 
@@ -102,12 +104,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error(orderError?.message ?? "Order not found for payment");
     }
 
+    await supabase
+      .from("orders")
+      .update({ last_webhook_at: new Date().toISOString() })
+      .eq("id", externalReference);
+
     await syncOrderPaymentStatus({
       order: {
-        ...(order as OrderStatusRecord),
+        ...(order as Parameters<typeof syncOrderPaymentStatus>[0]["order"]),
         mp_payment_id: String(paymentData.id),
       },
       paymentClient,
+      supabase,
+    });
+
+    await writeOrderEvent({
+      eventType: "mercado_pago_webhook_processed",
+      orderId: externalReference,
+      payload: {
+        eventType,
+        mpPaymentId: paymentId,
+        mpStatus: paymentData.status ?? null,
+      },
       supabase,
     });
 

@@ -5,6 +5,12 @@ import {
   getCheckoutQuote,
   type CheckoutPriceKey,
 } from "../../src/lib/checkout-pricing.js";
+import {
+  deriveOrderStatusFromPayment,
+  ensurePaidOrderArtifacts,
+  type OrderRecord,
+  writeOrderEvent,
+} from "./orders.js";
 
 type RequiredEnv = {
   accessToken: string;
@@ -15,12 +21,12 @@ type RequiredEnv = {
 
 export class ClientInputError extends Error {}
 
-export type OrderStatusRecord = {
-  id: string;
-  mp_payment_id: null | string;
-  mp_status: string;
-  paid_at: null | string;
-  status_token: string;
+export type CheckoutRequestInput = {
+  accessToken: string;
+  orderId: string;
+  phoneNumber: string;
+  priceKey: CheckoutPriceKey;
+  quote: ReturnType<typeof getCheckoutQuote>;
 };
 
 export function getRequiredEnv(): RequiredEnv {
@@ -80,14 +86,18 @@ export function normalizePhoneNumber(rawPhoneNumber: unknown): string {
   return digits;
 }
 
-export function parseCheckoutRequest(body: unknown) {
+export function parseCheckoutRequest(body: unknown): CheckoutRequestInput {
   const raw = (body ?? {}) as {
+    accessToken?: unknown;
+    orderId?: unknown;
     phoneNumber?: unknown;
     priceKey?: unknown;
     selectedStyleIds?: unknown;
   };
 
   if (
+    typeof raw.accessToken !== "string" ||
+    typeof raw.orderId !== "string" ||
     typeof raw.priceKey !== "string" ||
     !Array.isArray(raw.selectedStyleIds) ||
     raw.selectedStyleIds.some((styleId) => typeof styleId !== "number")
@@ -110,6 +120,8 @@ export function parseCheckoutRequest(body: unknown) {
   }
 
   return {
+    accessToken: raw.accessToken,
+    orderId: raw.orderId,
     phoneNumber,
     priceKey,
     quote,
@@ -117,7 +129,10 @@ export function parseCheckoutRequest(body: unknown) {
 }
 
 export async function syncOrderPaymentStatus(params: {
-  order: OrderStatusRecord;
+  order: Pick<
+    OrderRecord,
+    "id" | "mp_payment_id" | "mp_status" | "order_status" | "paid_at" | "phone" | "purchased_styles"
+  >;
   paymentClient: Payment;
   supabase: ReturnType<typeof createSupabaseAdminClient>;
 }) {
@@ -147,32 +162,62 @@ export async function syncOrderPaymentStatus(params: {
     nextStatus === "approved"
       ? payment.date_approved ?? order.paid_at ?? new Date().toISOString()
       : order.paid_at;
+  const nextOrderStatus = deriveOrderStatusFromPayment(order.order_status, nextStatus);
 
   if (
     paymentId !== order.mp_payment_id ||
     nextStatus !== order.mp_status ||
-    nextPaidAt !== order.paid_at
+    nextPaidAt !== order.paid_at ||
+    nextOrderStatus !== order.order_status
   ) {
     const { data, error } = await supabase
       .from("orders")
       .update({
         mp_payment_id: paymentId,
         mp_status: nextStatus,
+        order_status: nextOrderStatus,
         paid_at: nextPaidAt,
       })
       .eq("id", order.id)
-      .select("id, mp_payment_id, mp_status, paid_at, status_token")
+      .select(
+        "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source_preview_path",
+      )
       .single();
 
     if (error || !data) {
       throw new Error(error?.message ?? "Failed to persist payment status");
     }
 
+    if (nextStatus === "approved") {
+      await ensurePaidOrderArtifacts({
+        order: data as OrderRecord,
+        supabase,
+      });
+    }
+
+    await writeOrderEvent({
+      eventType: "payment_status_synced",
+      orderId: order.id,
+      payload: {
+        mpPaymentId: paymentId,
+        mpStatus: nextStatus,
+        orderStatus: nextOrderStatus,
+      },
+      supabase,
+    });
+
     return {
       paidAt: data.paid_at,
       paymentId: data.mp_payment_id,
       status: data.mp_status,
     };
+  }
+
+  if (nextStatus === "approved") {
+    await ensurePaidOrderArtifacts({
+      order,
+      supabase,
+    });
   }
 
   return { paidAt: nextPaidAt, paymentId, status: nextStatus };

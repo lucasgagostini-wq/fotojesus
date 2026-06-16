@@ -4,8 +4,8 @@ import {
   createSupabaseAdminClient,
   getRequiredEnv,
   syncOrderPaymentStatus,
-  type OrderStatusRecord,
 } from "./_lib/payment-flow.js";
+import { getOrderByAccess, writeOrderEvent } from "./_lib/orders.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).end();
@@ -13,9 +13,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = req.query.id;
   const token = req.query.token;
   const orderId = typeof id === "string" ? id : id?.[0];
-  const statusToken = typeof token === "string" ? token : token?.[0];
+  const accessToken = typeof token === "string" ? token : token?.[0];
 
-  if (!orderId || !statusToken) {
+  if (!orderId || !accessToken) {
     return res.status(400).json({ error: "Missing id or token" });
   }
 
@@ -25,17 +25,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const env = getRequiredEnv();
     const supabase = createSupabaseAdminClient(env);
     const paymentClient = createMercadoPagoPaymentClient(env);
-
-    const { data: order, error } = await supabase
-      .from("orders")
-      .select("id, mp_payment_id, mp_status, paid_at, status_token")
-      .eq("id", orderId)
-      .eq("status_token", statusToken)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    const order = await getOrderByAccess({
+      accessToken,
+      orderId,
+      supabase,
+    });
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
@@ -44,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const nextOrder =
       order.mp_status === "pending"
         ? await syncOrderPaymentStatus({
-            order: order as OrderStatusRecord,
+            order,
             paymentClient,
             supabase,
           })
@@ -54,7 +48,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: order.mp_status,
           };
 
+    await writeOrderEvent({
+      eventType: "payment_status_polled",
+      orderId: order.id,
+      payload: { status: nextOrder.status },
+      supabase,
+    });
+
+    const refreshedOrder = await getOrderByAccess({
+      accessToken,
+      orderId,
+      supabase,
+    });
+
     return res.status(200).json({
+      orderStatus: refreshedOrder?.order_status ?? order.order_status,
       paidAt: nextOrder.paidAt,
       status: nextOrder.status,
     });

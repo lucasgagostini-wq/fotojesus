@@ -7,6 +7,12 @@ import {
   getUpsellPriceKey,
   type CheckoutPriceKey,
 } from "../lib/checkout-pricing";
+import type { OrderAccessResponse, OrderSummary, StoredOrderSession } from "../lib/order-contract";
+import {
+  clearStoredOrderSession,
+  loadStoredOrderSession,
+  saveStoredOrderSession,
+} from "../lib/order-session";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import hugImg               from "../assets/jesus-moments/hug.png";
@@ -55,6 +61,105 @@ function maskPhone(value: string) {
   return value;
 }
 
+const PIX_RECOVERABLE_STATUSES = new Set([
+  "payment_pending",
+  "payment_approved",
+  "processing",
+  "partially_completed",
+  "completed",
+  "delivery_pending",
+  "delivery_retry_requested",
+  "delivery_sent",
+  "processing_failed",
+  "delivery_failed",
+]);
+
+function isCheckoutPriceKey(value: string | null): value is CheckoutPriceKey {
+  return [
+    "single",
+    "double",
+    "triple",
+    "quad",
+    "upsell_1_to_4",
+    "upsell_2_to_4",
+    "upsell_3_to_4",
+  ].includes(value ?? "");
+}
+
+async function loadImageFromFile(file: File): Promise<HTMLImageElement> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    return await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Nao foi possivel ler a imagem"));
+      image.src = objectUrl;
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function scaleDimensions(width: number, height: number, maxSize: number) {
+  const scale = Math.min(1, maxSize / Math.max(width, height));
+  return {
+    height: Math.max(1, Math.round(height * scale)),
+    width: Math.max(1, Math.round(width * scale)),
+  };
+}
+
+function canvasToBase64(canvas: HTMLCanvasElement, quality: number) {
+  const dataUrl = canvas.toDataURL("image/jpeg", quality);
+  const base64 = dataUrl.split(",")[1];
+  if (!base64) {
+    throw new Error("Falha ao preparar a imagem");
+  }
+
+  return base64;
+}
+
+async function prepareUploadPayload(file: File) {
+  const image = await loadImageFromFile(file);
+  const originalSize = scaleDimensions(image.naturalWidth, image.naturalHeight, 1600);
+  const previewSize = scaleDimensions(image.naturalWidth, image.naturalHeight, 512);
+
+  const originalCanvas = document.createElement("canvas");
+  originalCanvas.width = originalSize.width;
+  originalCanvas.height = originalSize.height;
+  const originalContext = originalCanvas.getContext("2d");
+  if (!originalContext) {
+    throw new Error("Falha ao preparar a imagem");
+  }
+  originalContext.drawImage(image, 0, 0, originalSize.width, originalSize.height);
+
+  const previewCanvas = document.createElement("canvas");
+  previewCanvas.width = previewSize.width;
+  previewCanvas.height = previewSize.height;
+  const previewContext = previewCanvas.getContext("2d");
+  if (!previewContext) {
+    throw new Error("Falha ao preparar a imagem");
+  }
+  previewContext.drawImage(image, 0, 0, previewSize.width, previewSize.height);
+
+  return {
+    mimeType: "image/jpeg",
+    originalBase64: canvasToBase64(originalCanvas, 0.86),
+    previewBase64: canvasToBase64(previewCanvas, 0.74),
+  };
+}
+
+function persistOrderSession(summary: OrderSummary): StoredOrderSession {
+  const session = {
+    accessToken: summary.accessToken,
+    orderId: summary.id,
+    recoveryCode: summary.recoveryCode,
+  };
+
+  saveStoredOrderSession(session);
+  return session;
+}
+
 // ── AppFlow ───────────────────────────────────────────────────────────────────
 function AppFlow() {
   const [currentStep, setCurrentStep]           = useState<Step>('landing');
@@ -66,23 +171,171 @@ function AppFlow() {
   const [checkoutPriceKey, setCheckoutPriceKey] = useState<CheckoutPriceKey>("single");
   const [checkoutStyleIds, setCheckoutStyleIds] = useState<number[]>([]);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
+  const [uploadedPhotoFile, setUploadedPhotoFile] = useState<File | null>(null);
   const [showPhotoConfirm, setShowPhotoConfirm] = useState(false);
   const [phoneNumber, setPhoneNumber]           = useState<string>("");
   const [showPhoneModal, setShowPhoneModal]     = useState(false);
   const [pixOrderId, setPixOrderId]             = useState<string | null>(null);
-  const [pixStatusToken, setPixStatusToken]     = useState<string | null>(null);
+  const [orderAccessToken, setOrderAccessToken] = useState<string | null>(null);
   const [pixRealCode, setPixRealCode]           = useState<string | null>(null);
   const [pixQrBase64, setPixQrBase64]           = useState<string | null>(null);
   const [pixCreating, setPixCreating]           = useState(false);
   const [pixError, setPixError]                 = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading]     = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+  const [recoveringOrder, setRecoveringOrder]   = useState(true);
+  const [orderSession, setOrderSession]         = useState<StoredOrderSession | null>(null);
+  const [orderSummary, setOrderSummary]         = useState<OrderSummary | null>(null);
+  const [initialPaymentStatus, setInitialPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryPhone, setRecoveryPhone]       = useState("");
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState("");
+  const [recoveryLoading, setRecoveryLoading]   = useState(false);
+  const [recoveryError, setRecoveryError]       = useState<string | null>(null);
 
   const nextStep = (step: Step) => { window.scrollTo(0, 0); setCurrentStep(step); };
 
-  const handleFileSelect = (url: string) => { setUploadedPhotoUrl(url); setShowPhotoConfirm(true); };
-  const handlePhotoConfirm = () => { setShowPhotoConfirm(false); nextStep('styles'); };
+  const hydrateOrder = useCallback((summary: OrderSummary) => {
+    const session = persistOrderSession(summary);
+    setOrderSession(session);
+    setOrderSummary(summary);
+    setUploadedPhotoUrl(summary.sourcePreviewUrl);
+    setPixOrderId(summary.id);
+    setOrderAccessToken(summary.accessToken);
+    setPixRealCode(summary.pixCode);
+    setPixQrBase64(summary.qrBase64);
+    setCheckoutStyleIds(summary.selectedStyleIds);
+    if (summary.phoneNumber) setPhoneNumber(maskPhone(summary.phoneNumber));
+    if (typeof summary.amount === "number") setPixValue(summary.amount);
+    if (summary.label) setPixLabel(summary.label);
+    if (isCheckoutPriceKey(summary.priceKey)) setCheckoutPriceKey(summary.priceKey);
+
+    if (summary.mpStatus === "approved") {
+      setInitialPaymentStatus("approved");
+    } else if (summary.mpStatus === "rejected" || summary.mpStatus === "cancelled") {
+      setInitialPaymentStatus("rejected");
+    } else {
+      setInitialPaymentStatus("pending");
+    }
+
+    if (PIX_RECOVERABLE_STATUSES.has(summary.orderStatus) || summary.mpStatus === "pending") {
+      setCurrentStep("pix");
+      return;
+    }
+
+    if (summary.orderStatus === "photo_uploaded") {
+      setCurrentStep("styles");
+      return;
+    }
+
+    setCurrentStep("upload");
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreOrder = async () => {
+      const session = loadStoredOrderSession();
+      if (!session) {
+        if (!cancelled) setRecoveringOrder(false);
+        return;
+      }
+
+      try {
+        const query = new URLSearchParams({
+          id: session.orderId,
+          token: session.accessToken,
+        });
+        const res = await fetch(`/api/order-access?${query.toString()}`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          clearStoredOrderSession();
+          if (!cancelled) {
+            setOrderSession(null);
+            setRecoveringOrder(false);
+          }
+          return;
+        }
+
+        const data = await res.json() as OrderAccessResponse;
+        if (cancelled) return;
+        hydrateOrder(data.order);
+      } catch {
+        clearStoredOrderSession();
+      } finally {
+        if (!cancelled) setRecoveringOrder(false);
+      }
+    };
+
+    restoreOrder();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateOrder]);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedPhotoUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(uploadedPhotoUrl);
+      }
+    };
+  }, [uploadedPhotoUrl]);
+
+  const handleFileSelect = (file: File) => {
+    if (uploadedPhotoUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(uploadedPhotoUrl);
+    }
+
+    setUploadedPhotoFile(file);
+    setUploadedPhotoUrl(URL.createObjectURL(file));
+    setPhotoUploadError(null);
+    setShowPhotoConfirm(true);
+  };
+
+  const handlePhotoConfirm = async () => {
+    if (!uploadedPhotoFile || photoUploading) return;
+
+    setPhotoUploadError(null);
+    setPhotoUploading(true);
+
+    try {
+      const payload = await prepareUploadPayload(uploadedPhotoFile);
+      const res = await fetch("/api/upload-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessToken: orderSession?.accessToken,
+          mimeType: payload.mimeType,
+          orderId: orderSession?.orderId,
+          originalBase64: payload.originalBase64,
+          previewBase64: payload.previewBase64,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Erro ao salvar sua foto");
+      }
+
+      const data = await res.json() as OrderAccessResponse;
+      hydrateOrder(data.order);
+      setShowPhotoConfirm(false);
+      nextStep("styles");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao salvar sua foto";
+      setPhotoUploadError(message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const handlePhotoRetry   = () => {
     setShowPhotoConfirm(false);
+    setPhotoUploadError(null);
     if (uploadedPhotoUrl) URL.revokeObjectURL(uploadedPhotoUrl);
+    setUploadedPhotoFile(null);
     setUploadedPhotoUrl(null);
   };
 
@@ -104,13 +357,20 @@ function AppFlow() {
   };
 
   const handlePhoneConfirm = async () => {
+    if (!orderSession) {
+      setPixError("Seu pedido precisa ser recuperado antes de gerar o PIX.");
+      nextStep("upload");
+      return;
+    }
+
     setShowPhoneModal(false);
     setPixCreating(true);
     setPixOrderId(null);
-    setPixStatusToken(null);
+    setOrderAccessToken(null);
     setPixRealCode(null);
     setPixQrBase64(null);
     setPixError(null);
+    setInitialPaymentStatus("pending");
     nextStep('pix');
 
     try {
@@ -118,6 +378,8 @@ function AppFlow() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          accessToken: orderSession.accessToken,
+          orderId: orderSession.orderId,
           priceKey: checkoutPriceKey,
           phoneNumber,
           selectedStyleIds: checkoutStyleIds,
@@ -129,17 +391,34 @@ function AppFlow() {
         throw new Error(err.error ?? 'Erro ao criar cobrança');
       }
 
-      const { orderId, paymentId, statusToken, pixCode, qrBase64 } = await res.json() as {
+      const { orderId, paymentId, accessToken, pixCode, qrBase64, recoveryCode, status } = await res.json() as {
         orderId: string;
         paymentId: string;
-        statusToken: string;
+        accessToken: string;
         pixCode: string | null;
         qrBase64: string | null;
+        recoveryCode: string | null;
+        status: string;
       };
       setPixOrderId(orderId);
-      setPixStatusToken(statusToken);
+      setOrderAccessToken(accessToken);
       setPixRealCode(pixCode);
       setPixQrBase64(qrBase64);
+      setInitialPaymentStatus(status === "approved" ? "approved" : "pending");
+      const nextSession = { accessToken, orderId, recoveryCode };
+      saveStoredOrderSession(nextSession);
+      setOrderSession(nextSession);
+      setOrderSummary((prev) => prev ? {
+        ...prev,
+        accessToken,
+        id: orderId,
+        mpStatus: status,
+        phoneNumber: phoneNumber.replace(/\D/g, ""),
+        pixCode,
+        qrBase64,
+        recoveryCode,
+        selectedStyleIds: checkoutStyleIds,
+      } : prev);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao criar cobrança PIX';
       setPixError(message);
@@ -148,11 +427,63 @@ function AppFlow() {
     }
   };
 
+  const handleRecoverOrder = async () => {
+    setRecoveryLoading(true);
+    setRecoveryError(null);
+
+    try {
+      const res = await fetch("/api/recover-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: recoveryPhone,
+          recoveryCode: recoveryCodeInput,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Nao foi possivel recuperar o pedido");
+      }
+
+      const data = await res.json() as OrderAccessResponse;
+      hydrateOrder(data.order);
+      setShowRecoveryModal(false);
+      setRecoveryPhone("");
+      setRecoveryCodeInput("");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Nao foi possivel recuperar o pedido";
+      setRecoveryError(message);
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  if (recoveringOrder) {
+    return (
+      <div className="app-container font-nunito">
+        <div className="w-full max-w-[480px] min-h-screen flex items-center justify-center px-6">
+          <div className="text-center flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-[3px] border-brand-gold border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-500 font-semibold">
+              Recuperando seu pedido salvo...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="app-container font-nunito">
         <div className="w-full max-w-[480px] min-h-screen relative overflow-x-hidden">
-          {currentStep === 'landing'  && <LandingScreen  onNext={() => nextStep('upload')} />}
+          {currentStep === 'landing'  && (
+            <LandingScreen
+              onNext={() => nextStep('upload')}
+              onRecover={() => setShowRecoveryModal(true)}
+            />
+          )}
           {currentStep === 'upload'   && <UploadScreen   onFileSelect={handleFileSelect} />}
           {currentStep === 'styles'   && (
             <StylesScreen selectedIds={selectedStyles} setSelectedIds={setSelectedStyles} onNext={() => nextStep('loading')} />
@@ -168,10 +499,12 @@ function AppFlow() {
               pixCode={pixRealCode}
               qrBase64={pixQrBase64}
               orderId={pixOrderId}
-              statusToken={pixStatusToken}
+              accessToken={orderAccessToken}
               phoneNumber={phoneNumber}
               isCreating={pixCreating}
               error={pixError}
+              initialPaymentStatus={initialPaymentStatus}
+              recoveryCode={orderSummary?.recoveryCode ?? orderSession?.recoveryCode ?? null}
             />
           )}
         </div>
@@ -179,7 +512,13 @@ function AppFlow() {
 
       {/* Modals fora do overflow-x-hidden para fixed funcionar corretamente */}
       {showPhotoConfirm && uploadedPhotoUrl && (
-        <PhotoConfirmModal photoUrl={uploadedPhotoUrl} onConfirm={handlePhotoConfirm} onRetry={handlePhotoRetry} />
+        <PhotoConfirmModal
+          photoUrl={uploadedPhotoUrl}
+          onConfirm={handlePhotoConfirm}
+          onRetry={handlePhotoRetry}
+          isUploading={photoUploading}
+          error={photoUploadError}
+        />
       )}
       {showUpsell && (
         <UpsellModal
@@ -197,12 +536,24 @@ function AppFlow() {
           onClose={() => setShowPhoneModal(false)}
         />
       )}
+      {showRecoveryModal && (
+        <RecoveryModal
+          phone={recoveryPhone}
+          setPhone={setRecoveryPhone}
+          recoveryCode={recoveryCodeInput}
+          setRecoveryCode={setRecoveryCodeInput}
+          loading={recoveryLoading}
+          error={recoveryError}
+          onRecover={handleRecoverOrder}
+          onClose={() => setShowRecoveryModal(false)}
+        />
+      )}
     </>
   );
 }
 
 // ── LANDING ───────────────────────────────────────────────────────────────────
-function LandingScreen({ onNext }: { onNext: () => void }) {
+function LandingScreen({ onNext, onRecover }: { onNext: () => void; onRecover: () => void }) {
   return (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
       <header className="mb-2">
@@ -239,16 +590,19 @@ function LandingScreen({ onNext }: { onNext: () => void }) {
         <button onClick={onNext} className="btn-primary btn-shimmer">
           CRIAR MINHA IMAGEM
         </button>
+        <button onClick={onRecover} className="mt-3 text-sm font-bold text-gray-400 underline">
+          Recuperar pedido existente
+        </button>
       </div>
     </div>
   );
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────────────────────
-function UploadScreen({ onFileSelect }: { onFileSelect: (url: string) => void }) {
+function UploadScreen({ onFileSelect }: { onFileSelect: (file: File) => void }) {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFileSelect(URL.createObjectURL(e.target.files[0]));
+      onFileSelect(e.target.files[0]);
     }
   };
 
@@ -322,14 +676,18 @@ function UploadScreen({ onFileSelect }: { onFileSelect: (url: string) => void })
 }
 
 // ── PHOTO CONFIRM MODAL ───────────────────────────────────────────────────────
-function PhotoConfirmModal({ photoUrl, onConfirm, onRetry }: {
-  photoUrl: string; onConfirm: () => void; onRetry: () => void;
+function PhotoConfirmModal({ photoUrl, onConfirm, onRetry, isUploading, error }: {
+  photoUrl: string;
+  onConfirm: () => void;
+  onRetry: () => void;
+  isUploading: boolean;
+  error: string | null;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[420px] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto" style={{ maxHeight: '90dvh' }}>
         <div className="p-5 relative">
-          <button onClick={onRetry} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
+          <button onClick={onRetry} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600" disabled={isUploading}>
             <X size={24} />
           </button>
 
@@ -361,11 +719,21 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry }: {
             de baixa qualidade ou fora das orientações.
           </p>
 
+          {error && (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-600">
+              {error}
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 pb-2">
-            <button onClick={onConfirm} className="btn-primary flex items-center justify-center gap-2">
-              SIM, AVANÇAR <ChevronRight size={18} strokeWidth={3} />
+            <button
+              onClick={onConfirm}
+              className="btn-primary flex items-center justify-center gap-2"
+              disabled={isUploading}
+            >
+              {isUploading ? "SALVANDO FOTO..." : "SIM, AVANÇAR"} <ChevronRight size={18} strokeWidth={3} />
             </button>
-            <button onClick={onRetry} className="w-full bg-gray-100 text-gray-600 font-bold text-center py-3 rounded-xl active:scale-[0.98] transition-all">
+            <button onClick={onRetry} disabled={isUploading} className="w-full bg-gray-100 text-gray-600 font-bold text-center py-3 rounded-xl active:scale-[0.98] transition-all disabled:opacity-60">
               Escolher outra foto
             </button>
           </div>
@@ -694,6 +1062,95 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
 }
 
 // ── PHONE MODAL ───────────────────────────────────────────────────────────────
+function RecoveryModal({
+  phone,
+  setPhone,
+  recoveryCode,
+  setRecoveryCode,
+  loading,
+  error,
+  onRecover,
+  onClose,
+}: {
+  phone: string;
+  setPhone: React.Dispatch<React.SetStateAction<string>>;
+  recoveryCode: string;
+  setRecoveryCode: React.Dispatch<React.SetStateAction<string>>;
+  loading: boolean;
+  error: string | null;
+  onRecover: () => void;
+  onClose: () => void;
+}) {
+  const digits = phone.replace(/\D/g, "");
+  const isValid = digits.length === 11 && recoveryCode.trim().length >= 6;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-[480px] rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div className="relative px-5 py-5 rounded-t-3xl text-center bg-gray-900">
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
+          >
+            <X size={22} />
+          </button>
+          <p className="text-2xl mb-1">🔎</p>
+          <h3 className="text-white font-black text-base uppercase tracking-tight leading-tight">
+            RECUPERAR PEDIDO
+          </h3>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4 pb-8">
+          <p className="text-sm text-gray-600 text-center leading-relaxed">
+            Informe o mesmo numero usado no pedido e o codigo de recuperacao mostrado
+            apos o pagamento.
+          </p>
+
+          <div className="flex items-stretch rounded-xl border-2 overflow-hidden border-gray-200">
+            <div className="flex items-center gap-1.5 px-3 bg-gray-50 border-r border-gray-200 shrink-0">
+              <span className="text-base">🇧🇷</span>
+              <span className="text-sm font-black text-gray-700">+55</span>
+            </div>
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={(e) => setPhone(maskPhone(e.target.value))}
+              placeholder="(00) 00000-0000"
+              className="flex-1 px-3 py-4 text-base font-bold text-foreground placeholder:text-gray-300 outline-none bg-white"
+            />
+          </div>
+
+          <input
+            type="text"
+            inputMode="numeric"
+            value={recoveryCode}
+            onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            placeholder="Codigo de recuperacao"
+            className="w-full rounded-xl border-2 border-gray-200 px-4 py-4 text-base font-bold text-foreground placeholder:text-gray-300 outline-none bg-white"
+          />
+
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-600">
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={isValid ? onRecover : undefined}
+            disabled={!isValid || loading}
+            className={`btn-primary flex items-center justify-center gap-2 transition-opacity ${
+              isValid ? "opacity-100" : "opacity-40"
+            }`}
+          >
+            {loading ? "RECUPERANDO..." : "Recuperar pedido"} <ChevronRight size={18} strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PhoneModal({ phone, setPhone, onNext, onClose }: {
   phone: string;
   setPhone: React.Dispatch<React.SetStateAction<string>>;
@@ -711,7 +1168,7 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[480px] rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300">
 
-        {/* Cabeçalho verde WhatsApp */}
+        {/* Cabeçalho verde de vinculacao */}
         <div className="relative bg-[#25D366] px-5 py-5 rounded-t-3xl text-center">
           <button
             onClick={onClose}
@@ -721,18 +1178,18 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
           </button>
           <p className="text-2xl mb-1">💬</p>
           <h3 className="text-white font-black text-base uppercase tracking-tight leading-tight">
-            ENVIAREMOS NO SEU WHATSAPP
+            VINCULE SEU PEDIDO
           </h3>
         </div>
 
         <div className="p-5 flex flex-col gap-4 pb-8">
           <div className="text-center">
             <p className="text-sm text-gray-600 leading-relaxed">
-              Suas imagens serão enviadas automaticamente para o seu{" "}
-              <strong>WhatsApp</strong> assim que o pagamento for confirmado.
+              Seu numero sera salvo junto do pedido para facilitar a entrega e a recuperacao
+              das imagens depois do pagamento.
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              A entrega leva apenas alguns minutos. ⚡
+              Isso tambem ajuda se voce trocar de aparelho ou voltar mais tarde.
             </p>
           </div>
 
@@ -893,20 +1350,26 @@ function TestimonialCarousel({ images }: { images: string[] }) {
 }
 
 // ── PIX SCREEN ────────────────────────────────────────────────────────────────
-function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phoneNumber, isCreating, error }: {
+function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phoneNumber, isCreating, error, initialPaymentStatus, recoveryCode }: {
   value: number;
   label: string;
   pixCode: string | null;
   qrBase64: string | null;
   orderId: string | null;
-  statusToken: string | null;
+  accessToken: string | null;
   phoneNumber: string;
   isCreating: boolean;
   error: string | null;
+  initialPaymentStatus: 'pending' | 'approved' | 'rejected';
+  recoveryCode: string | null;
 }) {
   const [timeLeft, setTimeLeft]       = useState(15 * 60);
   const [showToast, setShowToast]     = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>(initialPaymentStatus);
+
+  useEffect(() => {
+    setPaymentStatus(initialPaymentStatus);
+  }, [initialPaymentStatus]);
 
   useEffect(() => {
     if (isCreating || !pixCode) return;
@@ -915,10 +1378,10 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phon
   }, [isCreating, pixCode]);
 
   useEffect(() => {
-    if (!orderId || !statusToken || paymentStatus !== 'pending') return;
+    if (!orderId || !accessToken || paymentStatus !== 'pending') return;
     const interval = setInterval(async () => {
       try {
-        const query = new URLSearchParams({ id: orderId, token: statusToken });
+        const query = new URLSearchParams({ id: orderId, token: accessToken });
         const res = await fetch(`/api/payment-status?${query.toString()}`, {
           cache: "no-store",
         });
@@ -934,7 +1397,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phon
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [orderId, paymentStatus, statusToken]);
+  }, [accessToken, orderId, paymentStatus]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -959,7 +1422,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phon
         <div>
           <h2 className="text-2xl font-black text-foreground">Pagamento confirmado! 🎉</h2>
           <p className="text-gray-500 mt-2 text-sm leading-relaxed">
-            Suas imagens estão sendo enviadas para o seu WhatsApp.
+            Seu pedido foi salvo com seguranca e esta pronto para seguir para processamento.
           </p>
           {phoneNumber && (
             <p className="text-brand-gold font-black text-base mt-3">📲 {phoneNumber}</p>
@@ -967,9 +1430,18 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phon
         </div>
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 w-full text-left">
           <p className="text-sm font-bold text-green-700 leading-snug">
-            ⏱️ A entrega acontece em poucos minutos. Basta abrir o WhatsApp e conferir!
+            Fechou o navegador, trocou de aparelho ou voltou horas depois? Seu pedido continua recuperavel.
           </p>
         </div>
+        {recoveryCode && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 w-full text-left">
+            <p className="text-xs font-bold text-gray-500">Codigo de recuperacao do pedido</p>
+            <p className="text-2xl font-black text-foreground tracking-wide mt-1">{recoveryCode}</p>
+            <p className="text-[11px] text-gray-400 mt-2">
+              Guarde este codigo junto do numero informado para recuperar a entrega depois.
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 w-full">
           <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-12 h-12 rounded-lg object-cover shrink-0" />
           <p className="text-xs text-gray-600 text-left leading-snug font-medium">
@@ -1067,7 +1539,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phon
           <div className="text-2xl mt-1 shrink-0">📱</div>
           <div>
             <p className="text-xs font-bold text-gray-600 leading-snug">
-              Após o pagamento, suas imagens serão enviadas automaticamente para o seu WhatsApp.
+              Depois da aprovacao, o pedido fica salvo para entrega futura e pode ser reenviado sem depender desta aba.
             </p>
             {phoneNumber && (
               <p className="text-xs font-black text-brand-gold mt-1">
@@ -1075,7 +1547,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phon
               </p>
             )}
             <p className="text-[11px] font-bold text-gray-400 mt-2 leading-snug">
-              ⏱️ A entrega acontece em poucos minutos. Basta abrir o WhatsApp e conferir!
+              Guarde o codigo de recuperacao e o numero informado para localizar seu pedido mais tarde.
             </p>
           </div>
         </div>

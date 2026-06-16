@@ -1,6 +1,11 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["api/**/*.ts", "src/lib/checkout-pricing.ts"],
+  "include": [
+    "api/**/*.ts",
+    "src/lib/checkout-pricing.ts",
+    "src/lib/order-contract.ts",
+    "src/lib/order-status.ts"
+  ],
   "compilerOptions": {
     "lib": ["ES2022"],
     "module": "NodeNext",

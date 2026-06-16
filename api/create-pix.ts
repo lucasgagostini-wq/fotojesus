@@ -7,35 +7,83 @@ import {
   getRequiredEnv,
   parseCheckoutRequest,
 } from "./_lib/payment-flow.js";
+import {
+  getOrderByAccess,
+  normalizeStyleIds,
+  writeOrderEvent,
+} from "./_lib/orders.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
     const env = getRequiredEnv();
-    const { phoneNumber, priceKey, quote } = parseCheckoutRequest(req.body);
+    const { accessToken, orderId, phoneNumber, priceKey, quote } = parseCheckoutRequest(req.body);
     const supabase = createSupabaseAdminClient(env);
     const payment = createMercadoPagoPaymentClient(env);
-    const orderId = crypto.randomUUID();
-    const statusToken = crypto.randomUUID().replace(/-/g, "");
+    const order = await getOrderByAccess({
+      accessToken,
+      orderId,
+      supabase,
+    });
 
-    const { data: order, error: insertError } = await supabase
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (!order.source_original_path) {
+      throw new ClientInputError("Upload a photo before creating the PIX");
+    }
+
+    const purchasedStyleIds = normalizeStyleIds(order.purchased_styles);
+    const hasSameCheckout =
+      order.price_key === priceKey &&
+      JSON.stringify(normalizeStyleIds(order.selected_styles)) ===
+        JSON.stringify(quote.selectedStyleIds) &&
+      JSON.stringify(purchasedStyleIds) === JSON.stringify(quote.purchasedStyleIds);
+
+    if (order.mp_status === "approved") {
+      return res.status(200).json({
+        accessToken: order.access_token,
+        orderId: order.id,
+        paymentId: order.mp_payment_id,
+        pixCode: order.pix_code,
+        qrBase64: order.qr_base64,
+        recoveryCode: order.recovery_code,
+        status: order.mp_status,
+      });
+    }
+
+    if (order.mp_status === "pending" && order.mp_payment_id && order.pix_code && hasSameCheckout) {
+      return res.status(200).json({
+        accessToken: order.access_token,
+        orderId: order.id,
+        paymentId: order.mp_payment_id,
+        pixCode: order.pix_code,
+        qrBase64: order.qr_base64,
+        recoveryCode: order.recovery_code,
+        status: order.mp_status,
+      });
+    }
+
+    const { error: prepareError } = await supabase
       .from("orders")
-      .insert({
-        id: orderId,
-        phone: phoneNumber,
+      .update({
         amount: quote.amount,
         label: quote.label,
+        last_error: null,
+        order_status: "payment_pending",
+        payment_requested_at: new Date().toISOString(),
+        phone: phoneNumber,
         price_key: priceKey,
+        purchased_styles: quote.purchasedStyleIds,
         selected_styles: quote.selectedStyleIds,
-        status_token: statusToken,
         styles: quote.purchasedStyleIds,
       })
-      .select("id, status_token")
-      .single();
+      .eq("id", order.id);
 
-    if (insertError || !order) {
-      throw new Error(insertError?.message ?? "Failed to create order");
+    if (prepareError) {
+      throw new Error(prepareError.message);
     }
 
     let result;
@@ -49,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             order_id: order.id,
             price_key: priceKey,
             purchased_styles: quote.purchasedStyleIds,
+            recovery_code: order.recovery_code,
             selected_styles: quote.selectedStyleIds,
           },
           notification_url: `${getPublicAppBaseUrl(req)}/api/webhook`,
@@ -64,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (paymentError) {
       await supabase
         .from("orders")
-        .update({ mp_status: "creation_failed" })
+        .update({ last_error: "Mercado Pago payment creation failed", mp_status: "creation_failed" })
         .eq("id", order.id);
 
       throw paymentError;
@@ -77,29 +126,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const paymentId = String(result.id);
-    const { data: updatedOrder, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from("orders")
       .update({
         mp_payment_id: paymentId,
         mp_status: result.status ?? "pending",
+        order_status: "payment_pending",
         paid_at: result.status === "approved" ? result.date_approved ?? new Date().toISOString() : null,
         pix_code: pixCode,
-        pix_qr_base64: qrBase64,
+        qr_base64: qrBase64,
       })
-      .eq("id", order.id)
-      .select("id")
-      .single();
+      .eq("id", order.id);
 
-    if (updateError || !updatedOrder) {
+    if (updateError) {
       console.error("[create-pix] Failed to persist PIX details", updateError);
     }
 
+    await writeOrderEvent({
+      eventType: "pix_created",
+      orderId: order.id,
+      payload: {
+        mpPaymentId: paymentId,
+        priceKey,
+        purchasedStyleIds: quote.purchasedStyleIds,
+        selectedStyleIds: quote.selectedStyleIds,
+      },
+      supabase,
+    });
+
     return res.status(200).json({
+      accessToken: order.access_token,
       orderId: order.id,
       paymentId,
       pixCode,
       qrBase64,
-      statusToken: order.status_token,
+      recoveryCode: order.recovery_code,
+      status: result.status ?? "pending",
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
