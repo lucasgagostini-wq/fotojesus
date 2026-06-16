@@ -838,11 +838,9 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
   const [hasEverSelected, setHasEverSelected] = useState(false);
 
   const toggleSelection = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
-      if (next.length > 0) setHasEverSelected(true);
-      return next;
-    });
+    const next = selectedIds.includes(id) ? selectedIds.filter((i) => i !== id) : [...selectedIds, id];
+    setSelectedIds(next);
+    if (next.length > 0) setHasEverSelected(true);
   };
 
   const hasSelection = selectedIds.length > 0;
