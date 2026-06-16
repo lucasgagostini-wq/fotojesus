@@ -1184,7 +1184,7 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
           </h3>
         </div>
 
-        <div className="p-5 flex flex-col gap-4 pb-8">
+        <div className="px-5 pt-4 pb-6 flex flex-col gap-3">
           <div className="text-center">
             <p className="text-sm text-gray-600 leading-relaxed">
               Seu numero sera salvo junto do pedido para facilitar a entrega e a recuperacao
@@ -1209,7 +1209,7 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
               value={phone}
               onChange={handleChange}
               placeholder="(00) 00000-0000"
-              className="flex-1 px-3 py-4 text-base font-bold text-foreground placeholder:text-gray-300 outline-none bg-white"
+              className="flex-1 px-3 py-3 text-base font-bold text-foreground placeholder:text-gray-300 outline-none bg-white"
             />
           </div>
 
