@@ -936,9 +936,15 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 
       {hasEverSelected && (
         <div className="animate-in fade-in duration-500">
-          <div className="flex flex-col gap-1 mt-2">
-            <p className="text-[11px] text-gray-400 font-medium leading-tight">⏳ Sua imagem fica disponível por tempo limitado</p>
-            <p className="text-[11px] text-gray-700 font-medium leading-tight">✝️ Imagem pronta para você guardar para sempre</p>
+          <div className="max-w-sm mx-auto flex flex-col gap-1 mt-2">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[11px] leading-none">⏳</span>
+              <p className="text-[11px] text-gray-400 font-medium leading-tight">Sua imagem fica disponível por tempo limitado</p>
+            </div>
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[11px] leading-none">✝️</span>
+              <p className="text-[11px] text-gray-700 font-medium leading-tight">Imagem pronta para você guardar para sempre</p>
+            </div>
           </div>
 
           <div className="mt-3">
