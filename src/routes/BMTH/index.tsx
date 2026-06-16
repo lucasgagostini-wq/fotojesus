@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ─────────────────────────── console administrativo ───────────────────────────
 
@@ -99,10 +99,51 @@ function AdminConsole({ refresh }: { refresh: () => void }) {
   const [input, setInput] = useState("");
   const [stage, setStage] = useState<ConsoleStage>("idle");
   const [pending, setPending] = useState<(() => Promise<void>) | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(-1);
+  const [dismissedInput, setDismissedInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const idRef = useRef(0);
   const initRef = useRef(false);
+
+  const suggestions = useMemo(() => {
+    if (!input.startsWith("/") || stage !== "idle") return [];
+    const query = input.slice(1).toLowerCase();
+    return Object.keys(COMMANDS).filter((name) => name.startsWith(query));
+  }, [input, stage]);
+
+  const showSuggestions =
+    suggestions.length > 0 &&
+    input !== dismissedInput &&
+    !(suggestions.length === 1 && input === `/${suggestions[0]}`);
+
+  useEffect(() => { setSelectedIdx(-1); }, [suggestions]);
+
+  function applySuggestion(name: string) {
+    setInput(`/${name}`);
+    setDismissedInput("");
+    setSelectedIdx(-1);
+    inputRef.current?.focus();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIdx((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      const target = selectedIdx >= 0 ? suggestions[selectedIdx] : suggestions[0];
+      if (target) applySuggestion(target);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setDismissedInput(input);
+      setSelectedIdx(-1);
+    }
+  }
 
   const push = useCallback((type: ConsoleEntry["type"], text: string) => {
     setEntries((prev) => [...prev, { id: idRef.current++, type, text }]);
@@ -218,6 +259,32 @@ function AdminConsole({ refresh }: { refresh: () => void }) {
             <div ref={bottomRef} />
           </div>
 
+          {/* Autocomplete dropdown */}
+          {showSuggestions && (
+            <div className="border-t border-zinc-800/60 bg-zinc-950">
+              {suggestions.map((name, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); applySuggestion(name); }}
+                  onMouseEnter={() => setSelectedIdx(i)}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 font-mono text-xs transition-colors ${
+                    i === selectedIdx
+                      ? "bg-zinc-800 text-zinc-100"
+                      : "text-zinc-400 hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <span className="text-zinc-600">/</span>
+                  <span className={i === selectedIdx ? "text-zinc-100" : "text-zinc-300"}>{name}</span>
+                  <span className="ml-auto truncate text-[10px] text-zinc-600">{COMMANDS[name]?.description}</span>
+                  {i === selectedIdx && (
+                    <kbd className="shrink-0 rounded border border-zinc-700 px-1 py-px font-mono text-[9px] text-zinc-500">TAB</kbd>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Input */}
           <form onSubmit={(e) => void handleSubmit(e)} className="flex items-center gap-2 border-t border-zinc-800 px-3 py-2">
             <span className="font-mono text-xs text-zinc-600 select-none">
@@ -226,7 +293,8 @@ function AdminConsole({ refresh }: { refresh: () => void }) {
             <input
               ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); setDismissedInput(""); }}
+              onKeyDown={handleKeyDown}
               disabled={stage === "running"}
               placeholder={stage === "confirm" ? "CONFIRMAR ou qualquer outra coisa para cancelar" : "/comando"}
               className="flex-1 bg-transparent font-mono text-xs text-zinc-200 outline-none placeholder:text-zinc-700 disabled:opacity-40"
