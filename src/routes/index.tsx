@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, ChevronLeft, X, Phone } from "lucide-react";
+import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, ChevronLeft, X } from "lucide-react";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import hugImg               from "../assets/jesus-moments/hug.png";
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/")({
   component: AppFlow,
 });
 
-type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'phone' | 'pix';
+type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'pix';
 
 const STYLES = [
   { id: 1, label: "Jesus te abraçando",         img: hugImg,          imgPixelado: hugPixeladoImg,          description: "Jesus te abraçando" },
@@ -62,6 +62,7 @@ function AppFlow() {
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [showPhotoConfirm, setShowPhotoConfirm] = useState(false);
   const [phoneNumber, setPhoneNumber]           = useState<string>("");
+  const [showPhoneModal, setShowPhoneModal]     = useState(false);
 
   const nextStep = (step: Step) => { window.scrollTo(0, 0); setCurrentStep(step); };
 
@@ -75,7 +76,7 @@ function AppFlow() {
 
   const goToPhone = (value: number, label: string, code: string) => {
     setPixValue(value); setPixLabel(label); setPixCodePlaceholder(code);
-    nextStep('phone');
+    setShowPhoneModal(true);
   };
 
   const handleResultsContinue = () => {
@@ -99,9 +100,6 @@ function AppFlow() {
           {currentStep === 'results'  && (
             <ResultsScreen selectedIds={resultsSelected} setSelectedIds={setResultsSelected} onContinue={handleResultsContinue} />
           )}
-          {currentStep === 'phone'    && (
-            <PhoneScreen phone={phoneNumber} setPhone={setPhoneNumber} onNext={() => nextStep('pix')} />
-          )}
           {currentStep === 'pix'      && (
             <PixScreen value={pixValue} label={pixLabel} pixCode={pixCodePlaceholder} phoneNumber={phoneNumber} />
           )}
@@ -120,6 +118,14 @@ function AppFlow() {
           onClose={() => setShowUpsell(false)}
         />
       )}
+      {showPhoneModal && (
+        <PhoneModal
+          phone={phoneNumber}
+          setPhone={setPhoneNumber}
+          onNext={() => { setShowPhoneModal(false); nextStep('pix'); }}
+          onClose={() => setShowPhoneModal(false)}
+        />
+      )}
     </>
   );
 }
@@ -130,19 +136,18 @@ function LandingScreen({ onNext }: { onNext: () => void }) {
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
       <header className="mb-2">
         <h1 className="text-[28px] font-black text-foreground leading-tight">
-          ✝️ Veja como seria
+          ✝️ Veja como seria um momento seu ao lado de{" "}
+          <span
+            style={{
+              background: "linear-gradient(135deg, #F5A623 0%, #E8960A 55%, #F5A623 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Jesus
+          </span>
         </h1>
-        <h2
-          className="text-[28px] font-black leading-tight"
-          style={{
-            background: "linear-gradient(135deg, #F5A623 0%, #E8960A 55%, #F5A623 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          ao lado de Jesus
-        </h2>
         <p className="text-gray-500 mt-2 text-sm px-4">
           Crie uma imagem emocionante e única em poucos segundos
         </p>
@@ -152,8 +157,7 @@ function LandingScreen({ onNext }: { onNext: () => void }) {
         {STYLES.map((style) => (
           <div key={style.id} className="card-style relative aspect-[3/4] overflow-hidden">
             <img src={style.img} alt={style.label} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-0 inset-x-0 py-2 px-2 text-[10px] font-semibold text-white text-center">
+            <div className="absolute bottom-0 inset-x-0 bg-white/95 py-2 px-2 text-[10px] font-semibold text-foreground text-center">
               {style.label}
             </div>
           </div>
@@ -162,11 +166,8 @@ function LandingScreen({ onNext }: { onNext: () => void }) {
 
       <div className="mt-2">
         <button onClick={onNext} className="btn-primary btn-shimmer">
-          ✨ CRIAR MINHA IMAGEM
+          CRIAR MINHA IMAGEM
         </button>
-        <p className="text-[11px] text-gray-400 mt-3 font-medium">
-          🔒 Seguro · Rápido · Entregue no WhatsApp
-        </p>
       </div>
     </div>
   );
@@ -184,7 +185,6 @@ function UploadScreen({ onFileSelect }: { onFileSelect: (url: string) => void })
     <div className="content-wrapper animate-in fade-in duration-300">
       <header className="text-center">
         <h1 className="text-2xl font-bold text-foreground">📷 Envie sua foto</h1>
-        <p className="text-sm text-gray-400 mt-1">Passo 1 de 2</p>
       </header>
 
       <div className="border-2 border-red-500 bg-red-50 rounded-xl p-4 flex flex-col items-center text-center gap-1 text-red-600">
@@ -192,38 +192,40 @@ function UploadScreen({ onFileSelect }: { onFileSelect: (url: string) => void })
         <p className="font-extrabold text-xs uppercase">NÃO FUNCIONA COM FOTOS DE CRIANÇAS!</p>
       </div>
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+      <div className="bg-white rounded-2xl p-5 shadow-sm">
         <p className="text-sm leading-relaxed text-gray-700 text-center">
           A sua imagem ao lado de Jesus é criada com uma{" "}
-          <strong>Inteligência Artificial ultra realista</strong>. Para que fique parecida com você,
-          a foto precisa seguir as orientações abaixo:
+          <strong>Inteligência Artificial ultra realista</strong>. Por isso, para criarmos
+          uma imagem que <strong>realmente seja parecida com você</strong>, precisamos que a
+          sua foto siga as orientações abaixo:
         </p>
-        <p className="font-bold text-foreground text-center text-sm">
-          Uma selfie do seu rosto, bem iluminada.
-        </p>
+      </div>
 
-        <div className="flex gap-2 items-end">
-          <div className="flex flex-col gap-2 flex-1">
-            <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
-              <img src={uploadErradoImg} alt="Exemplo errado" className="w-full object-contain" />
-            </div>
-            <span className="text-[11px] text-gray-500 font-bold text-center uppercase tracking-tight">Tire assim</span>
+      <p className="text-foreground text-center text-sm">
+        Uma <strong>selfie do seu rosto</strong>, bem iluminada.
+      </p>
+
+      <div className="flex gap-2 items-end">
+        <div className="flex flex-col gap-2 flex-1">
+          <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
+            <img src={uploadErradoImg} alt="Exemplo errado" className="w-full object-contain" />
           </div>
-          <div className="flex flex-col items-center justify-center shrink-0 pb-6">
-            <ChevronRight size={22} className="text-brand-gold" strokeWidth={2.5} />
+          <span className="text-[11px] text-gray-500 font-bold text-center uppercase tracking-tight">Tire assim</span>
+        </div>
+        <div className="flex flex-col items-center justify-center shrink-0 pb-6">
+          <ChevronRight size={22} className="text-brand-gold" strokeWidth={2.5} />
+        </div>
+        <div className="flex flex-col gap-2 flex-1">
+          <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
+            <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
           </div>
-          <div className="flex flex-col gap-2 flex-1">
-            <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
-              <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
-            </div>
-            <span className="text-[11px] text-brand-gold font-bold text-center uppercase tracking-tight">Foto ideal ✓</span>
-          </div>
+          <span className="text-[11px] text-brand-gold font-bold text-center uppercase tracking-tight">Foto ideal ✓</span>
         </div>
       </div>
 
       <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
-        <p className="text-sm font-bold text-yellow-800 flex items-center gap-2 mb-2">
-          💡 Para melhores resultados:
+        <p className="text-sm font-bold text-yellow-800 flex items-start gap-2 mb-2">
+          💡 Para que as imagens fiquem parecidas com você, siga as orientações abaixo:
         </p>
         <ul className="text-xs text-yellow-700 space-y-1.5 list-none pl-1">
           <li>• Apenas <strong>1 pessoa</strong> na foto</li>
@@ -292,7 +294,7 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry }: {
             <button onClick={onConfirm} className="btn-primary flex items-center justify-center gap-2">
               SIM, AVANÇAR <ChevronRight size={18} strokeWidth={3} />
             </button>
-            <button onClick={onRetry} className="text-sm text-gray-400 font-bold text-center py-2">
+            <button onClick={onRetry} className="w-full bg-gray-100 text-gray-600 font-bold text-center py-3 rounded-xl active:scale-[0.98] transition-all">
               Escolher outra foto
             </button>
           </div>
@@ -313,8 +315,7 @@ function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
   return (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
       <header>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Passo 2 de 2</p>
-        <h1 className="text-2xl font-bold text-foreground">🎨 Escolha os estilos</h1>
+        <h1 className="text-2xl font-bold text-foreground">🎨 Passo 2: Escolha os estilos</h1>
         <p className="text-gray-500 mt-2 text-sm">
           Clique nas imagens que você mais gostou. Se gostou das 4, selecione as 4.
         </p>
@@ -340,7 +341,7 @@ function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
                 </div>
               )}
 
-              <div className="absolute bottom-0 inset-x-0 bg-white/90 py-2 px-1 text-[10px] font-bold text-foreground text-center">
+              <div className="absolute bottom-0 inset-x-0 bg-black/55 py-2 px-1 text-[10px] font-bold text-white text-center">
                 {style.label}
               </div>
             </div>
@@ -349,11 +350,11 @@ function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
       </div>
 
       <button
-        className={`btn-primary mt-8 transition-opacity ${selectedIds.length === 0 ? "opacity-50" : "opacity-100"}`}
+        className={`btn-primary mt-8 flex items-center justify-center gap-2 transition-opacity ${selectedIds.length === 0 ? "opacity-50" : "opacity-100"}`}
         disabled={selectedIds.length === 0}
         onClick={onNext}
       >
-        CONTINUAR
+        AVANÇAR <ChevronRight size={18} strokeWidth={3} />
       </button>
     </div>
   );
@@ -378,8 +379,8 @@ function LoadingScreen({ onFinish }: { onFinish: () => void }) {
   return (
     <div className="content-wrapper animate-in fade-in duration-300 flex flex-col items-center justify-center min-h-[80vh] text-center">
       <div className="text-[80px] mb-6">🙏</div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">Criando sua imagem...</h2>
-      <p className="text-gray-500 mb-8">Quase pronto...</p>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Analisando sua foto...</h2>
+      <p className="text-gray-500 mb-8">Criando sua imagem com IA...</p>
       <div className="w-[70%] h-4 bg-[#e0e0e0] rounded-full overflow-hidden mb-4">
         <div
           className="h-full bg-brand-gold transition-all ease-in-out duration-200"
@@ -447,8 +448,8 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
             <div
               key={style.id}
               onClick={() => toggleSelection(style.id)}
-              className={`card-style relative aspect-[3/4] cursor-pointer overflow-hidden transition-all duration-200 ${
-                isSelected ? "ring-[3px] ring-brand-gold shadow-lg" : "ring-0"
+              className={`card-style relative aspect-[3/4] cursor-pointer overflow-hidden transition-all duration-200 border-2 ${
+                isSelected ? "border-brand-gold ring-[3px] ring-brand-gold shadow-lg" : "border-dashed border-brand-gold/60"
               }`}
             >
               {/* Foto pixelada — revelação via WhatsApp após pagamento */}
@@ -571,7 +572,7 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[400px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="bg-brand-gold p-4 relative text-center">
+        <div className="bg-gradient-to-r from-orange-500 to-brand-gold p-4 relative text-center">
           <h3 className="text-white font-black text-lg tracking-tight">{popupData.title}</h3>
           <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white">
             <X size={24} strokeWidth={3} />
@@ -622,11 +623,12 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
   );
 }
 
-// ── PHONE SCREEN ──────────────────────────────────────────────────────────────
-function PhoneScreen({ phone, setPhone, onNext }: {
+// ── PHONE MODAL ───────────────────────────────────────────────────────────────
+function PhoneModal({ phone, setPhone, onNext, onClose }: {
   phone: string;
   setPhone: React.Dispatch<React.SetStateAction<string>>;
   onNext: () => void;
+  onClose: () => void;
 }) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(maskPhone(e.target.value));
@@ -636,65 +638,70 @@ function PhoneScreen({ phone, setPhone, onNext }: {
   const isValid = digits.length === 11;
 
   return (
-    <div className="content-wrapper animate-in fade-in duration-300">
-      <div className="flex flex-col items-center text-center gap-3">
-        <div className="w-20 h-20 bg-brand-gold/10 rounded-full flex items-center justify-center">
-          <Phone size={36} className="text-brand-gold" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground leading-tight">
-          Quase lá! 🙌
-        </h1>
-        <p className="text-gray-500 text-sm leading-relaxed px-2">
-          Informe seu WhatsApp para receber suas imagens automaticamente após o pagamento.
-        </p>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-[480px] rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300">
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
-        <label className="text-sm font-bold text-foreground">
-          Seu número de WhatsApp:
-        </label>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">📱</span>
-          <input
-            type="tel"
-            inputMode="numeric"
-            value={phone}
-            onChange={handleChange}
-            placeholder="(11) 99999-9999"
-            className={`w-full pl-10 pr-4 py-4 rounded-xl border-2 text-base font-bold text-foreground placeholder:text-gray-300 outline-none transition-colors ${
-              isValid ? "border-brand-gold bg-yellow-50/30" : "border-gray-200 bg-white"
+        {/* Cabeçalho verde WhatsApp */}
+        <div className="relative bg-[#25D366] px-5 py-5 rounded-t-3xl text-center">
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
+          >
+            <X size={22} />
+          </button>
+          <p className="text-2xl mb-1">💬</p>
+          <h3 className="text-white font-black text-base uppercase tracking-tight leading-tight">
+            ENVIAREMOS NO SEU WHATSAPP
+          </h3>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4 pb-8">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Suas imagens serão enviadas automaticamente para o seu{" "}
+              <strong>WhatsApp</strong> assim que o pagamento for confirmado.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              A entrega leva apenas alguns minutos. ⚡
+            </p>
+          </div>
+
+          {/* Input com prefixo +55 fixo */}
+          <div className={`flex items-stretch rounded-xl border-2 overflow-hidden transition-colors ${
+            isValid ? "border-[#25D366]" : "border-gray-200"
+          }`}>
+            <div className="flex items-center gap-1.5 px-3 bg-gray-50 border-r border-gray-200 shrink-0">
+              <span className="text-base">🇧🇷</span>
+              <span className="text-sm font-black text-gray-700">+55</span>
+            </div>
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={handleChange}
+              placeholder="(00) 00000-0000"
+              className="flex-1 px-3 py-4 text-base font-bold text-foreground placeholder:text-gray-300 outline-none bg-white"
+            />
+          </div>
+
+          <button
+            onClick={isValid ? onNext : undefined}
+            disabled={!isValid}
+            className={`btn-primary flex items-center justify-center gap-2 transition-opacity ${
+              isValid ? "opacity-100 pulse-glow" : "opacity-40"
             }`}
-          />
+          >
+            Continuar para pagamento <ChevronRight size={18} strokeWidth={3} />
+          </button>
+
+          <div className="flex items-center justify-center gap-1.5">
+            <ShieldCheck size={13} className="text-gray-400 shrink-0" />
+            <p className="text-[11px] text-gray-400">
+              Seus dados são usados apenas para entrega das imagens.
+            </p>
+          </div>
         </div>
-        <p className="text-[11px] text-gray-400 font-medium">
-          Inclua o DDD (ex: 11 para São Paulo)
-        </p>
       </div>
-
-      <div className="bg-green-50 rounded-2xl p-4 border border-green-100 flex items-start gap-3">
-        <span className="text-xl shrink-0">📲</span>
-        <p className="text-xs font-medium text-gray-600 leading-relaxed">
-          Após confirmar o pagamento via PIX, suas imagens serão enviadas automaticamente para este número no WhatsApp.{" "}
-          <strong className="text-gray-700">A entrega leva apenas alguns minutos.</strong>
-        </p>
-      </div>
-
-      <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3">
-        <ShieldCheck size={18} className="text-green-500 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-gray-500 leading-relaxed">
-          Seus dados são usados apenas para entrega das imagens e nunca serão compartilhados com terceiros.
-        </p>
-      </div>
-
-      <button
-        onClick={onNext}
-        disabled={!isValid}
-        className={`btn-primary flex items-center justify-center gap-2 transition-opacity ${
-          isValid ? "opacity-100" : "opacity-40"
-        }`}
-      >
-        CONTINUAR PARA O PAGAMENTO <ChevronRight size={18} strokeWidth={3} />
-      </button>
     </div>
   );
 }
@@ -877,13 +884,14 @@ function PixScreen({ value, label, pixCode, phoneNumber }: {
         <button onClick={copyPix} className="btn-primary flex items-center justify-center gap-2">
           <Copy size={20} /> COPIAR CÓDIGO PIX
         </button>
-        <p className="text-[10px] text-gray-400 text-center mt-2 font-mono">[{pixCode}]</p>
       </div>
 
       <div className="text-center">
         <p className="text-sm font-bold text-gray-500">Ou escaneie o QR Code:</p>
-        <div className="mt-4 mx-auto w-48 h-48 bg-white border-4 border-white shadow-lg rounded-xl flex items-center justify-center text-gray-400 font-bold text-[10px] text-center p-4">
-          [QR code — {pixCode}]
+        <div className="mt-4 mx-auto w-48 h-48 bg-white border-4 border-white shadow-lg rounded-xl flex items-center justify-center">
+          <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+            <p className="text-gray-400 text-[10px] text-center font-medium px-3">QR Code<br />disponível em breve</p>
+          </div>
         </div>
       </div>
 
