@@ -136,7 +136,7 @@ export async function handleOrders(req: VercelRequest, res: VercelResponse) {
     let query = supabase
       .from("orders")
       .select(
-        "id, created_at, phone, amount, label, purchased_styles, order_status, paid_at, mp_payment_id",
+        "id, created_at, phone, amount, label, purchased_styles, order_status, paid_at, mp_payment_id, source",
         { count: "exact" },
       );
 
@@ -147,6 +147,10 @@ export async function handleOrders(req: VercelRequest, res: VercelResponse) {
       query = query.in("order_status", paidNotDelivered);
     } else if (filter === "delivered") {
       query = query.in("order_status", DELIVERED_STATUSES);
+    } else if (filter === "jesus") {
+      query = query.eq("source", "jesus");
+    } else if (filter === "aparecida") {
+      query = query.eq("source", "aparecida");
     }
 
     if (search) {
@@ -196,7 +200,7 @@ export async function handleOrder(req: VercelRequest, res: VercelResponse) {
     const { data: order, error } = await supabase
       .from("orders")
       .select(
-        "id, phone, amount, label, price_key, purchased_styles, selected_styles, paid_at, order_status, source_original_path, source_preview_path, recovery_code, created_at, updated_at, mp_payment_id, mp_status, last_webhook_at",
+        "id, phone, amount, label, price_key, purchased_styles, selected_styles, paid_at, order_status, source, source_original_path, source_preview_path, recovery_code, created_at, updated_at, mp_payment_id, mp_status, last_webhook_at",
       )
       .eq("id", orderId)
       .single();

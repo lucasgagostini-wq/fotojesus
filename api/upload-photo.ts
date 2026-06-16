@@ -64,6 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderId?: unknown;
       originalBase64?: unknown;
       previewBase64?: unknown;
+      source?: unknown;
     };
 
     if (typeof body.mimeType !== "string" || !body.mimeType.startsWith("image/")) {
@@ -88,6 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       originalBytes,
       previewBytes,
       sha256,
+      source: typeof body.source === "string" ? body.source : undefined,
       supabase,
     });
 

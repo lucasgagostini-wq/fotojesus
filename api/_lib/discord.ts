@@ -121,12 +121,15 @@ export async function notifyPixGenerated(params: {
   paymentId: null | string;
   phone: null | string;
   selectedStyleIds: number[];
+  source?: null | string;
 }): Promise<void> {
+  const origemLabel = params.source === "aparecida" ? "🔵 APARECIDA" : params.source === "jesus" ? "🟡 JESUS" : "—";
   await send({
     color: COLOR.pix,
     fields: [
       { inline: true, name: "Valor", value: fmtAmount(params.amount) },
       { inline: true, name: "Status", value: "pending" },
+      { inline: true, name: "Origem", value: origemLabel },
       { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
       { inline: false, name: "Estilos", value: fmtStyles(params.selectedStyleIds) },
       { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
@@ -145,12 +148,15 @@ export async function notifyPaymentApproved(params: {
   paymentId: null | string;
   phone: null | string;
   purchasedStyleIds: number[];
+  source?: null | string;
 }): Promise<void> {
+  const origemLabel = params.source === "aparecida" ? "🔵 APARECIDA" : params.source === "jesus" ? "🟡 JESUS" : "—";
   await send({
     color: COLOR.approved,
     fields: [
       { inline: true, name: "Valor", value: fmtAmount(params.amount) },
       { inline: true, name: "Status", value: "approved" },
+      { inline: true, name: "Origem", value: origemLabel },
       { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
       { inline: false, name: "Estilos", value: fmtStyles(params.purchasedStyleIds) },
       { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },

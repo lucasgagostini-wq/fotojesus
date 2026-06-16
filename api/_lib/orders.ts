@@ -33,6 +33,7 @@ export type OrderRecord = {
   qr_base64: null | string;
   recovery_code: null | string;
   selected_styles: Json | null;
+  source: null | string;
   source_original_path: null | string;
   source_preview_path: null | string;
 };
@@ -63,6 +64,7 @@ type UploadDraftOrderParams = {
   originalBytes: Uint8Array;
   previewBytes: Uint8Array;
   sha256: string;
+  source?: string;
   supabase: SupabaseClient;
 };
 
@@ -162,7 +164,7 @@ export async function getOrderByAccess(params: {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source_original_path, source_preview_path",
+      "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
     )
     .eq("id", orderId)
     .eq("access_token", accessToken)
@@ -218,6 +220,7 @@ export async function createOrUpdateDraftOrderWithUpload(
       id: orderId,
       order_status: "draft",
       recovery_code: recoveryCode,
+      ...(params.source ? { source: params.source } : {}),
     });
 
     if (error) {
@@ -266,7 +269,7 @@ export async function createOrUpdateDraftOrderWithUpload(
     })
     .eq("id", orderId)
     .select(
-      "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source_original_path, source_preview_path",
+      "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
     )
     .single();
 
@@ -459,6 +462,7 @@ export async function buildOrderAccessResponse(params: {
       recoveryCode: order.recovery_code,
       results,
       selectedStyleIds: normalizeStyleIds(order.selected_styles),
+      source: order.source,
       sourcePreviewUrl,
     },
   };

@@ -50,6 +50,7 @@ export type OrderSummary = {
   recoveryCode: null | string;
   results: OrderResultSummary[];
   selectedStyleIds: number[];
+  source: null | string;
   sourcePreviewUrl: null | string;
   deliveries: OrderDeliverySummary[];
 };

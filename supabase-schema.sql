@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS orders (
   last_recovered_at           timestamptz,
   last_webhook_at             timestamptz,
   last_error                  text,
+  source                      text,
   created_at                  timestamptz NOT NULL DEFAULT timezone('utc', now()),
   updated_at                  timestamptz NOT NULL DEFAULT timezone('utc', now())
 );
@@ -75,6 +76,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_accessed_at timestamptz;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_recovered_at timestamptz;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_webhook_at timestamptz;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_error text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS source text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT timezone('utc', now());
 
 ALTER TABLE orders ALTER COLUMN phone DROP NOT NULL;

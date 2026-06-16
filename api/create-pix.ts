@@ -117,6 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             purchased_styles: quote.purchasedStyleIds,
             recovery_code: order.recovery_code,
             selected_styles: quote.selectedStyleIds,
+            source: order.source ?? null,
           },
           notification_url: `${getPublicAppBaseUrl(req)}/api/webhook`,
           payer: {
@@ -178,6 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       paymentId,
       phone: phoneNumber,
       selectedStyleIds: quote.selectedStyleIds,
+      source: order.source,
     });
 
     return res.status(200).json({

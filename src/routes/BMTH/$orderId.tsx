@@ -16,6 +16,7 @@ type OrderDetail = {
   selected_styles: null | number[];
   paid_at: null | string;
   order_status: string;
+  source: null | string;
   recovery_code: null | string;
   created_at: string;
   updated_at: null | string;
@@ -195,6 +196,13 @@ function OrderDetailPage() {
               <div className="grid grid-cols-1 divide-y divide-zinc-800/70 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 sm:grid-cols-2 sm:divide-y-0">
                 <Row label="Telefone" value={fmtPhone(data.order.phone)} />
                 <Row label="Valor" value={fmtAmount(data.order.amount)} />
+                <Row label="Origem" value={
+                  data.order.source === "aparecida"
+                    ? "🔵 APARECIDA"
+                    : data.order.source === "jesus"
+                    ? "🟡 JESUS"
+                    : "SEM ORIGEM"
+                } />
                 <Row label="Recovery Code" value={data.order.recovery_code} mono />
                 <Row label="Order ID" value={data.order.id} mono />
                 <Row label="Payment ID" value={data.order.mp_payment_id} mono />

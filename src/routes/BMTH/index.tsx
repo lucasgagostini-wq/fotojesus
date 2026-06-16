@@ -299,6 +299,7 @@ type Order = {
   order_status: string;
   paid_at: null | string;
   mp_payment_id: null | string;
+  source: null | string;
 };
 
 type Dashboard = {
@@ -407,7 +408,19 @@ const FILTERS = [
   { key: "pending", label: "Pendentes" },
   { key: "paid", label: "Pagos" },
   { key: "delivered", label: "Entregues" },
+  { key: "jesus", label: "🟡 Jesus" },
+  { key: "aparecida", label: "🔵 Aparecida" },
 ];
+
+function SourceBadge({ source }: { source: null | string }) {
+  if (source === "jesus") {
+    return <span className="inline-block rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300 whitespace-nowrap">🟡 JESUS</span>;
+  }
+  if (source === "aparecida") {
+    return <span className="inline-block rounded-full border border-blue-500/30 bg-blue-500/15 px-2 py-0.5 text-[11px] font-medium text-blue-300 whitespace-nowrap">🔵 APARECIDA</span>;
+  }
+  return <span className="text-xs text-zinc-600">SEM ORIGEM</span>;
+}
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [dash, setDash] = useState<Dashboard | null>(null);
@@ -551,6 +564,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                       <th className="px-3 py-2.5 font-medium">Telefone</th>
                       <th className="px-3 py-2.5 font-medium">Valor</th>
                       <th className="px-3 py-2.5 font-medium">Estilos</th>
+                      <th className="px-3 py-2.5 font-medium">Origem</th>
                       <th className="px-3 py-2.5 font-medium">Status</th>
                       <th className="px-3 py-2.5 font-medium"></th>
                     </tr>
@@ -558,21 +572,21 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   <tbody className="divide-y divide-zinc-800/70">
                     {loadingOrders && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-8 text-center text-zinc-500">
+                        <td colSpan={7} className="px-3 py-8 text-center text-zinc-500">
                           Carregando...
                         </td>
                       </tr>
                     )}
                     {error && !loadingOrders && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-8 text-center text-rose-400">
+                        <td colSpan={7} className="px-3 py-8 text-center text-rose-400">
                           {error}
                         </td>
                       </tr>
                     )}
                     {!loadingOrders && !error && orders.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-8 text-center text-zinc-500">
+                        <td colSpan={7} className="px-3 py-8 text-center text-zinc-500">
                           Nenhum pedido encontrado.
                         </td>
                       </tr>
@@ -589,6 +603,9 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                             </td>
                             <td className="px-3 py-2.5 text-zinc-400">
                               {styles.length > 0 ? styles.join(", ") : "—"}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <SourceBadge source={o.source} />
                             </td>
                             <td className="px-3 py-2.5">
                               <StatusBadge status={o.order_status} />

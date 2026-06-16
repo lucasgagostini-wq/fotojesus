@@ -325,6 +325,7 @@ function AppFlowAparecida() {
           orderId: orderSession?.orderId,
           originalBase64: payload.originalBase64,
           previewBase64: payload.previewBase64,
+          source: "aparecida",
         }),
       });
 
