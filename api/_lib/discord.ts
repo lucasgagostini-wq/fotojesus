@@ -50,13 +50,22 @@ type Embed = {
   title: string;
 };
 
+function getMention(): string | undefined {
+  const id = process.env.DISCORD_USER_ID;
+  return id ? `<@${id}>` : undefined;
+}
+
 /** Envio de baixo nível — fire-and-forget, swallow de qualquer erro. */
 async function send(embed: Embed): Promise<void> {
   const url = process.env.DISCORD_WEBHOOK_URL;
   if (!url) return;
+  const mention = getMention();
   try {
     await fetch(url, {
-      body: JSON.stringify({ embeds: [{ timestamp: new Date().toISOString(), ...embed }] }),
+      body: JSON.stringify({
+        ...(mention ? { content: mention } : {}),
+        embeds: [{ timestamp: new Date().toISOString(), ...embed }],
+      }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
     });
@@ -82,7 +91,9 @@ export async function sendTest(): Promise<{ httpStatus: number; sentAt: string }
     timeZone: "America/Sao_Paulo",
   });
 
+  const mention = getMention();
   const body = JSON.stringify({
+    ...(mention ? { content: mention } : {}),
     embeds: [
       {
         title: "🚀 TESTE DE INTEGRAÇÃO BMTH",
