@@ -6,7 +6,48 @@ import {
   getRequiredEnv,
   syncOrderPaymentStatus,
 } from "./_lib/payment-flow.js";
-import { writeOrderEvent } from "./_lib/orders.js";
+import { normalizeStyleIds, writeOrderEvent } from "./_lib/orders.js";
+
+async function notifyDiscord(params: {
+  amount: null | number;
+  label: null | string;
+  orderId: string;
+  phone: null | string;
+  purchasedStyleIds: number[];
+}) {
+  const url = process.env.DISCORD_WEBHOOK_URL;
+  if (!url) return;
+
+  const { amount, label, orderId, phone, purchasedStyleIds } = params;
+  const stylesText = purchasedStyleIds.length > 0 ? `Estilos ${purchasedStyleIds.join(", ")}` : "—";
+  const amountText = amount != null ? `R$ ${amount.toFixed(2).replace(".", ",")}` : "—";
+
+  const payload = {
+    embeds: [
+      {
+        color: 0x25d366,
+        fields: [
+          { inline: true, name: "💰 Valor", value: amountText },
+          { inline: true, name: "📦 Produto", value: label ?? "—" },
+          { inline: true, name: "🎨 Estilos", value: stylesText },
+          { inline: false, name: "📱 WhatsApp", value: phone ? `+55 ${phone}` : "—" },
+          { inline: false, name: "🔑 Order ID", value: `\`${orderId}\`` },
+        ],
+        title: "🎉 Nova venda FotoJesus!",
+      },
+    ],
+  };
+
+  try {
+    await fetch(url, {
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+  } catch (err) {
+    console.error("[webhook] Discord notification failed", err);
+  }
+}
 
 function getWebhookPaymentId(req: VercelRequest): null | string {
   const queryDataId = req.query["data.id"];
@@ -109,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .update({ last_webhook_at: new Date().toISOString() })
       .eq("id", externalReference);
 
-    await syncOrderPaymentStatus({
+    const syncResult = await syncOrderPaymentStatus({
       order: {
         ...(order as Parameters<typeof syncOrderPaymentStatus>[0]["order"]),
         mp_payment_id: String(paymentData.id),
@@ -117,6 +158,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       paymentClient,
       supabase,
     });
+
+    if (syncResult.status === "approved") {
+      await notifyDiscord({
+        amount: order.amount,
+        label: order.label,
+        orderId: externalReference,
+        phone: order.phone,
+        purchasedStyleIds: normalizeStyleIds(order.purchased_styles),
+      });
+    }
 
     await writeOrderEvent({
       eventType: "mercado_pago_webhook_processed",
