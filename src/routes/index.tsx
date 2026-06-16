@@ -875,7 +875,7 @@ function LoadingScreen({ onFinish }: { onFinish: () => void }) {
   useEffect(() => {
     const msgTimer = setInterval(() => {
       setMsgIdx((prev) => (prev + 1) % LOADING_MESSAGES.length);
-    }, 760);
+    }, 1400);
     return () => clearInterval(msgTimer);
   }, []);
 
@@ -964,14 +964,12 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
                 className="absolute inset-0 w-full h-full object-cover"
               />
 
-              {/* Badge preço — canto superior esquerdo */}
-              <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-start gap-0 px-1.5 pt-1.5">
-                <span className="bg-black/70 text-white text-[10px] font-extrabold px-1.5 py-[2px] rounded-sm leading-tight backdrop-blur-[1px]">
-                  Apenas R$ 10,90
-                </span>
-                <span className="bg-black/50 text-white text-[8px] font-semibold px-1.5 py-[1px] rounded-sm leading-tight mt-[1px] backdrop-blur-[1px]">
-                  Alta qualidade para baixar
-                </span>
+              {/* Badge preço — canto superior esquerdo, estilo etiqueta branca premium */}
+              <div className="absolute top-1.5 left-1.5 z-10">
+                <div className="bg-white rounded-lg shadow-md px-2 py-1 leading-tight">
+                  <p className="text-[12px] font-black text-gray-900 leading-none">Apenas R$ 10,90</p>
+                  <p className="text-[9px] font-semibold text-gray-500 leading-none mt-0.5">Alta qualidade para baixar</p>
+                </div>
               </div>
 
               {/* Botão TOQUE — centro, só quando não selecionado */}
@@ -1003,42 +1001,45 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 
       {hasEverSelected && (
         <div className="animate-in fade-in duration-500">
-          <div className="max-w-sm mx-auto flex flex-col gap-1.5 mt-2">
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[14px] leading-none">⏳</span>
-              <p className="text-[14px] text-gray-600 font-semibold leading-tight">Sua imagem fica disponível por tempo limitado</p>
+          {/* 1. Urgência  ·  2. Emocional */}
+          <div className="max-w-sm mx-auto flex flex-col gap-2 mt-3">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-[16px] leading-none">⏳</span>
+              <p className="text-[15px] text-gray-700 font-semibold leading-snug">Sua imagem fica disponível por tempo limitado</p>
             </div>
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[14px] leading-none">✝️</span>
-              <p className="text-[14px] text-gray-800 font-semibold leading-tight">Imagem pronta para você guardar para sempre</p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-[16px] leading-none">✝️</span>
+              <p className="text-[15px] text-gray-800 font-semibold leading-snug">Imagem pronta para você guardar para sempre</p>
             </div>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-4">
+            {/* 3. Resumo da seleção  ·  4. Valor */}
             {hasSelection && (
-              <div className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-center shadow-sm mb-3">
-                <p className="text-[14px] font-bold text-gray-700 leading-tight">
+              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-center shadow-sm mb-4">
+                <p className="text-[15px] font-bold text-gray-700 leading-tight">
                   {selectedIds.length} {selectedIds.length === 1 ? "imagem selecionada" : "imagens selecionadas"}
                 </p>
-                <p className="text-[15px] font-bold text-gray-600 leading-tight mt-1">
+                <p className="text-[16px] font-bold text-gray-600 leading-tight mt-1.5">
                   Total para liberar:
                 </p>
-                <p className="text-[26px] font-black text-brand-gold leading-none mt-0.5">
+                <p className="text-[30px] font-black text-brand-gold leading-none mt-1">
                   R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
 
+            {/* 5. CTA */}
             <button
-              className={`btn-primary pulse-glow w-full flex flex-col items-center py-3 gap-0 transition-opacity ${!hasSelection ? 'opacity-50' : ''}`}
+              className={`btn-primary pulse-glow w-full flex flex-col items-center py-3.5 gap-0.5 ${!hasSelection ? 'opacity-50' : ''}`}
               onClick={hasSelection ? onContinue : undefined}
               disabled={!hasSelection}
             >
-              <span className="font-extrabold text-sm leading-tight">LIBERAR MINHA IMAGEM AGORA</span>
-              <span className="text-[12px] font-medium leading-tight opacity-90">Pagamento rápido e seguro via Pix</span>
+              <span className="font-extrabold text-base leading-tight">LIBERAR MINHA IMAGEM AGORA</span>
+              <span className="text-[13px] font-medium leading-tight opacity-90 normal-case">Pagamento rápido e seguro via Pix</span>
             </button>
 
-            <p className="text-center text-[14px] text-gray-600 font-semibold mt-1.5">Acesso imediato após o pagamento</p>
+            <p className="text-center text-[15px] text-gray-700 font-semibold mt-2">Acesso imediato após o pagamento</p>
           </div>
 
           <div className="mt-4 mb-20">
@@ -1094,48 +1095,53 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[400px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="bg-gradient-to-r from-orange-500 to-brand-gold p-4 relative text-center">
-          <h3 className="text-white font-black text-lg tracking-tight">{popupData.title}</h3>
-          <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white">
+        {/* Cabeçalho — destaque forte */}
+        <div className="bg-gradient-to-r from-orange-500 to-brand-gold px-5 py-4 relative text-center">
+          <h3 className="text-white font-black text-xl tracking-tight drop-shadow-sm">{popupData.title}</h3>
+          <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/90 hover:text-white">
             <X size={24} strokeWidth={3} />
           </button>
         </div>
 
         <div className="p-6 flex flex-col gap-5 text-center">
+          {/* Você está levando */}
           <div className="text-left">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 text-center">Você está levando</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 text-center">Você está levando</p>
             <div className="flex flex-col gap-2">
               {selectedStyles.map(s => (
-                <div key={s.id} className="flex justify-between items-center text-sm font-bold text-foreground bg-gray-50 px-3 py-2 rounded-lg">
+                <div key={s.id} className="flex justify-between items-center text-sm font-bold text-foreground bg-blue-50/70 px-3 py-2.5 rounded-lg">
                   <span>✓ {s.label}</span>
-                  <span>R$ 10,90</span>
+                  <span className="shrink-0 ml-2">R$ 10,90</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="border-2 border-brand-gold border-dashed bg-yellow-50/50 rounded-2xl p-4">
-            <p className="text-xs font-bold text-gray-600 leading-tight mb-1">{popupData.upsellText}</p>
-            <p className="text-2xl font-black text-brand-gold">R$ 3,90 cada!</p>
+          {/* Oferta — informação principal */}
+          <div className="border-2 border-brand-gold border-dashed bg-yellow-50/60 rounded-2xl p-5">
+            <p className="text-sm font-bold text-gray-700 leading-snug mb-2">{popupData.upsellText}</p>
+            <p className="text-[40px] font-black text-brand-gold leading-none">R$ 3,90 <span className="text-[26px]">cada!</span></p>
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* Total + economia */}
+          <div className="flex flex-col items-center gap-1">
             <p className="text-sm font-medium text-gray-500">Aceitando agora você paga só</p>
-            <p className="text-sm text-gray-400 line-through font-bold">De {popupData.strikethrough}</p>
-            <p className="text-2xl font-black text-brand-gold">
-              R$ {popupData.offerPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <p className="text-base text-gray-400 line-through font-bold">De {popupData.strikethrough}</p>
+            <p className="text-[34px] font-black text-brand-gold leading-none">
+              por R$ {popupData.offerPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-xs font-bold text-gray-400 italic">pelas 4 imagens</p>
-            <p className="text-brand-gold font-bold text-sm mt-1">
+            <p className="text-xs font-bold text-gray-400 italic mb-1">pelas 4 imagens</p>
+            <span className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 font-black text-sm px-4 py-1.5 rounded-full">
               👍 Economia de R$ {popupData.economy.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+            </span>
           </div>
 
-          <div className="flex flex-col gap-4 mt-2">
-            <button onClick={() => onAccept(popupData.acceptPriceKey, selectedIds)} className="btn-primary py-4 text-base font-extrabold">
+          {/* CTAs */}
+          <div className="flex flex-col gap-3 mt-1">
+            <button onClick={() => onAccept(popupData.acceptPriceKey, selectedIds)} className="btn-primary pulse-glow py-[18px] text-base font-black normal-case">
               Sim, quero todas! 💕
             </button>
-            <button onClick={() => onDecline(popupData.declinePriceKey, selectedIds)} className="text-sm text-gray-400 underline font-bold">
+            <button onClick={() => onDecline(popupData.declinePriceKey, selectedIds)} className="text-[13px] text-gray-400 underline font-semibold">
               Não, obrigado (continuar com R$ {popupData.declineValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
             </button>
           </div>
@@ -1407,7 +1413,7 @@ function TestimonialCarousel({ images }: { images: string[] }) {
             <img
               src={src}
               alt={`Depoimento ${(i % total) + 1}`}
-              className="w-full rounded-2xl shadow-xl object-cover"
+              className="w-full aspect-[9/16] rounded-2xl shadow-xl object-cover object-top"
               loading="lazy"
             />
           </div>

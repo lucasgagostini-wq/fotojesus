@@ -75,7 +75,7 @@
 
 @layer components {
   .btn-primary {
-    @apply w-full bg-brand-gold text-white font-extrabold uppercase py-[18px] rounded-[12px] shadow-md active:scale-[0.98] transition-all;
+    @apply w-full bg-brand-gold text-white font-extrabold uppercase py-[18px] rounded-[12px] shadow-md cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-[1.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md disabled:hover:brightness-100;
   }
   .btn-secondary {
     @apply w-full bg-white border-2 border-[#ccc] text-foreground font-semibold py-[16px] rounded-[12px] active:scale-[0.98] transition-all;
