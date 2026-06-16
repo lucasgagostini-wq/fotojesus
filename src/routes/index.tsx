@@ -16,7 +16,6 @@ import fieldPixeladoImg        from "../assets/jesus-moments/field-pixelado.jpeg
 import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
 import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
 
-import larBannerImg    from "../assets/institucional/lar-aconchego-banner.png";
 import larLogoImg      from "../assets/institucional/lar-aconchego-logo.png";
 import mpLogoImg       from "../assets/pagamento/mercado-pago-logo.png";
 
@@ -465,46 +464,43 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
   const totalPrice = selectedIds.length * 10.90;
 
   return (
-    <div className="content-wrapper animate-in fade-in duration-300">
+    <div className="w-full max-w-[480px] px-5 py-4 flex flex-col gap-3 animate-in fade-in duration-300">
       <header className="text-center">
-        <h1 className="text-2xl font-bold text-foreground leading-tight">
+        <h1 className="text-[22px] font-extrabold text-foreground leading-[1.08]">
           ✝️ Veja como ficou seu<br />momento com Jesus
         </h1>
-        <p className="text-gray-500 italic mt-2 text-sm">
+        <p className="text-gray-500 italic mt-1.5 text-[13px] leading-snug">
           "Um momento especial que você pode guardar para sempre"
         </p>
       </header>
 
       {/* Lar Aconchego Banner */}
-      <div className="rounded-2xl overflow-hidden border-2 border-[#4da8da] shadow-sm">
-        <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-40 object-cover object-center" />
-        <div className="bg-white p-3 text-center">
-          <p className="text-brand-gold font-bold text-sm leading-snug">
-            💛 100% dos valores arrecadados serão doados para o{" "}
-            <span className="underline font-extrabold">Lar Aconchego & Fé</span>
-          </p>
-        </div>
+      <div className="rounded-xl overflow-hidden bg-[#4da8da] px-4 py-3 text-center shadow-sm">
+        <p className="text-white font-extrabold text-[13px] leading-snug">
+          💛 100% dos valores arrecadados serão doados para o{" "}
+          <span className="underline">Lar Aconchego & Fé</span>
+        </p>
       </div>
 
-      <div className="text-center mt-2">
-        <p className="text-sm font-bold text-foreground">
+      <div className="text-center mt-0.5">
+        <p className="text-[13px] font-bold text-foreground leading-snug">
           👇 Toque em <span className="text-brand-gold font-extrabold uppercase">CADA</span> imagem que você quer liberar
         </p>
-        <p className="text-[11px] text-gray-400 mt-1">
+        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">
           Você pode escolher <strong>mais de uma</strong> — toque em todas que quiser
         </p>
       </div>
 
       {/* Image Grid */}
-      <div className="grid grid-cols-2 gap-3 mt-2">
+      <div className="grid grid-cols-2 gap-2.5 mt-0.5 mx-auto w-full max-w-[392px]">
         {STYLES.map((style) => {
           const isSelected = selectedIds.includes(style.id);
           return (
             <div
               key={style.id}
               onClick={() => toggleSelection(style.id)}
-              className={`card-style relative aspect-[3/4] cursor-pointer overflow-hidden transition-all duration-200 border-2 ${
-                isSelected ? "border-brand-gold ring-[3px] ring-brand-gold shadow-lg" : "border-dashed border-brand-gold/60"
+              className={`relative aspect-[3/4] cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm transition-all duration-200 border ${
+                isSelected ? "border-brand-gold ring-2 ring-brand-gold shadow-md" : "border-dashed border-brand-gold/60"
               }`}
             >
               {/* Foto pixelada — revelação via WhatsApp após pagamento */}
@@ -515,11 +511,11 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               />
 
               {/* Badge preço — canto superior esquerdo */}
-              <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-start gap-0 px-2 pt-2">
-                <span className="bg-black/70 text-white text-[8px] font-extrabold px-2 py-[3px] rounded-sm leading-tight backdrop-blur-[1px]">
+              <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-start gap-0 px-1.5 pt-1.5">
+                <span className="bg-black/70 text-white text-[7px] font-extrabold px-1.5 py-[2px] rounded-sm leading-tight backdrop-blur-[1px]">
                   Apenas R$ 10,90
                 </span>
-                <span className="bg-black/50 text-white/90 text-[6px] font-semibold px-2 py-[2px] rounded-sm leading-tight mt-[2px] backdrop-blur-[1px]">
+                <span className="bg-black/50 text-white/90 text-[5.5px] font-semibold px-1.5 py-[1px] rounded-sm leading-tight mt-[1px] backdrop-blur-[1px]">
                   Alta qualidade para baixar
                 </span>
               </div>
@@ -527,7 +523,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               {/* Botão TOQUE — centro, só quando não selecionado */}
               {!isSelected && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="bg-brand-gold text-white text-[11px] font-black px-4 py-1.5 rounded-full shadow-lg tracking-wide">
+                  <div className="bg-brand-gold text-white text-[9px] font-black px-3 py-1 rounded-full shadow-md tracking-wide">
                     💛 TOQUE
                   </div>
                 </div>
@@ -537,12 +533,12 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               <div className={`absolute bottom-0 inset-x-0 z-10 transition-colors duration-200 ${
                 isSelected ? "bg-[#1e293b]/95" : "bg-[#4da8da]/95"
               }`}>
-                <p className={`text-[9px] font-black text-center uppercase tracking-widest py-1.5 ${
+                <p className={`text-[7.5px] font-black text-center uppercase tracking-wider py-1 ${
                   isSelected ? "text-brand-gold" : "text-white"
                 }`}>
                   {isSelected ? "SUA ESCOLHA" : "💛 LEVE TAMBÉM"}
                 </p>
-                <p className="text-[8px] text-white/80 font-semibold text-center pb-1.5 -mt-1 leading-tight px-1">
+                <p className="text-[7px] text-white/80 font-semibold text-center pb-1 -mt-0.5 leading-none px-1">
                   {style.description}
                 </p>
               </div>
@@ -553,39 +549,39 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 
       {hasEverSelected && (
         <div className="animate-in fade-in duration-500">
-          <div className="flex flex-col gap-1.5 mt-4">
-            <p className="text-xs text-gray-400 font-medium">⏳ Sua imagem fica disponível por tempo limitado</p>
-            <p className="text-xs text-gray-700 font-medium">✝️ Imagem pronta para você guardar para sempre</p>
+          <div className="flex flex-col gap-1 mt-2">
+            <p className="text-[11px] text-gray-400 font-medium leading-tight">⏳ Sua imagem fica disponível por tempo limitado</p>
+            <p className="text-[11px] text-gray-700 font-medium leading-tight">✝️ Imagem pronta para você guardar para sempre</p>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-3">
             {hasSelection && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-4 text-center shadow-sm mb-4">
-                <p className="text-sm font-bold text-gray-600">
+              <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-center shadow-sm mb-3">
+                <p className="text-[12px] font-bold text-gray-600 leading-tight">
                   {selectedIds.length} {selectedIds.length === 1 ? "imagem selecionada" : "imagens selecionadas"}
                 </p>
-                <p className="text-xl font-black text-brand-gold mt-1">
+                <p className="text-[18px] font-black text-brand-gold leading-tight mt-0.5">
                   Total para liberar: R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
 
             <button
-              className={`btn-primary pulse-glow w-full flex flex-col items-center py-4 gap-0.5 transition-opacity ${!hasSelection ? 'opacity-50' : ''}`}
+              className={`btn-primary pulse-glow w-full flex flex-col items-center py-3 gap-0 transition-opacity ${!hasSelection ? 'opacity-50' : ''}`}
               onClick={hasSelection ? onContinue : undefined}
               disabled={!hasSelection}
             >
-              <span className="font-extrabold text-base">LIBERAR MINHA IMAGEM AGORA</span>
-              <span className="text-[11px] font-medium opacity-90">Pagamento rápido e seguro via Pix</span>
+              <span className="font-extrabold text-sm leading-tight">LIBERAR MINHA IMAGEM AGORA</span>
+              <span className="text-[10px] font-medium leading-tight opacity-90">Pagamento rápido e seguro via Pix</span>
             </button>
 
-            <p className="text-center text-xs text-gray-400 font-medium mt-2">Acesso imediato após o pagamento</p>
+            <p className="text-center text-[11px] text-gray-400 font-medium mt-1.5">Acesso imediato após o pagamento</p>
           </div>
 
-          <div className="mt-6 mb-24">
-            <div className="text-center mb-2">
-              <h3 className="font-black text-foreground text-base">💬 Veja o que outras pessoas estão sentindo</h3>
-              <p className="text-[11px] font-bold text-gray-400 mt-1">Centenas de famílias já guardaram seu momento com Jesus</p>
+          <div className="mt-4 mb-20 [&_img]:max-h-[116px] [&_img]:object-cover [&_img]:rounded-xl">
+            <div className="text-center mb-1.5">
+              <h3 className="font-black text-foreground text-[14px] leading-tight">💬 Veja o que outras pessoas estão sentindo</h3>
+              <p className="text-[10px] font-bold text-gray-400 mt-0.5 leading-tight">Centenas de famílias já guardaram seu momento com Jesus</p>
             </div>
             <TestimonialCarousel images={DEPOIMENTOS} />
           </div>
