@@ -28,6 +28,7 @@ import fieldPixeladoImg        from "../assets/jesus-moments/field-pixelado.jpeg
 import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
 import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
 
+import larBannerImg    from "../assets/institucional/lar-aconchego-banner.png";
 import larLogoImg      from "../assets/institucional/lar-aconchego-logo.png";
 import mpLogoImg       from "../assets/pagamento/mercado-pago-logo.png";
 
@@ -858,11 +859,14 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
       </header>
 
       {/* Lar Aconchego Banner */}
-      <div className="rounded-xl overflow-hidden bg-[#4da8da] px-4 py-3 text-center shadow-sm">
-        <p className="text-white font-extrabold text-[13px] leading-snug">
-          💛 100% dos valores arrecadados serão doados para o{" "}
-          <span className="underline">Lar Aconchego & Fé</span>
-        </p>
+      <div className="rounded-2xl overflow-hidden border-2 border-[#4da8da] shadow-sm">
+        <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-40 object-cover object-center" />
+        <div className="bg-white p-3 text-center">
+          <p className="text-brand-gold font-bold text-sm leading-snug">
+            💛 100% dos valores arrecadados serão doados para o{" "}
+            <span className="underline font-extrabold">Lar Aconchego & Fé</span>
+          </p>
+        </div>
       </div>
 
       <div className="text-center mt-0.5">
@@ -875,7 +879,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
       </div>
 
       {/* Image Grid */}
-      <div className="grid grid-cols-2 gap-2.5 mt-0.5 mx-auto w-full max-w-[392px]">
+      <div className="grid grid-cols-2 gap-3 mt-2">
         {STYLES.map((style) => {
           const isSelected = selectedIds.includes(style.id);
           return (
@@ -961,7 +965,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
             <p className="text-center text-[11px] text-gray-400 font-medium mt-1.5">Acesso imediato após o pagamento</p>
           </div>
 
-          <div className="mt-4 mb-20 [&_img]:max-h-[116px] [&_img]:object-cover [&_img]:rounded-xl">
+          <div className="mt-4 mb-20">
             <div className="text-center mb-1.5">
               <h3 className="font-black text-foreground text-[14px] leading-tight">💬 Veja o que outras pessoas estão sentindo</h3>
               <p className="text-[10px] font-bold text-gray-400 mt-0.5 leading-tight">Centenas de famílias já guardaram seu momento com Jesus</p>
@@ -1255,7 +1259,7 @@ function TestimonialCarousel({ images }: { images: string[] }) {
     const track = trackRef.current;
     if (!track || !w) return;
     track.style.transition = animate ? 'transform 0.65s ease-in-out' : 'none';
-    track.style.transform = `translateX(-${extIdx * w}px)`;
+    track.style.transform = `translateX(-${extIdx * (w / 2)}px)`;
   };
 
   useEffect(() => {
@@ -1304,7 +1308,7 @@ function TestimonialCarousel({ images }: { images: string[] }) {
           <div
             key={i}
             className="shrink-0 px-1.5"
-            style={{ width: containerW > 0 ? `${containerW}px` : '100%' }}
+            style={{ width: containerW > 0 ? `${containerW / 2}px` : '50%' }}
           >
             <img
               src={src}
