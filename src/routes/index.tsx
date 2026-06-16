@@ -1268,65 +1268,78 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-[420px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-[420px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ border: "2.5px solid #F5A623" }}>
 
-        {/* Cabeçalho verde de vinculacao */}
-        <div className="relative bg-[#25D366] px-5 py-5 text-center">
+        {/* Header dourado */}
+        <div className="relative px-5 py-5 text-center" style={{ background: "linear-gradient(135deg, #F6C346 0%, #F5A623 50%, #D4810A 100%)" }}>
           <button
             onClick={onClose}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
           >
             <X size={22} />
           </button>
-          <p className="text-3xl mb-1">💬</p>
-          <h3 className="text-white font-black text-xl uppercase tracking-tight leading-tight">
-            VINCULE SEU PEDIDO
+          {/* Ícone balão com fundo branco circular */}
+          <div className="mx-auto mb-2.5 w-12 h-12 rounded-full bg-white/25 flex items-center justify-center shadow-inner">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z"/>
+            </svg>
+          </div>
+          <h3 className="text-white font-black text-xl uppercase tracking-wide leading-tight drop-shadow-sm">
+            ENVIAREMOS NO SEU<br/>WHATSAPP
           </h3>
         </div>
 
-        <div className="px-5 pt-4 pb-6 flex flex-col gap-3">
+        <div className="px-5 pt-5 pb-6 flex flex-col gap-4">
+          {/* Instrução principal */}
           <div className="text-center">
-            <p className="text-base text-gray-700 leading-relaxed">
-              Seu numero sera salvo junto do pedido para facilitar a entrega e a recuperacao
-              das imagens depois do pagamento.
+            <p className="text-[17px] font-black text-gray-900 leading-snug">
+              Para garantir que você receba suas imagens, digite seu WhatsApp:
             </p>
-            <p className="text-sm text-gray-500 mt-1.5">
-              Isso tambem ajuda se voce trocar de aparelho ou voltar mais tarde.
+            <p className="text-[14px] font-semibold text-[#2563EB] leading-snug mt-2">
+              Logo após confirmar o pagamento as suas imagens serão criadas e em menos de{" "}
+              <span className="font-black">5 minutinhos</span> enviamos diretamente no seu Whatsapp 😊
             </p>
           </div>
 
-          {/* Input com prefixo +55 fixo */}
-          <div className={`flex items-stretch rounded-xl border-2 overflow-hidden transition-colors ${
-            isValid ? "border-[#25D366]" : "border-gray-300"
-          }`}>
-            <div className="flex items-center gap-1.5 px-3.5 bg-gray-50 border-r border-gray-200 shrink-0">
-              <span className="text-lg">🇧🇷</span>
-              <span className="text-base font-black text-gray-700">+55</span>
+          {/* Campo de telefone */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-bold text-gray-700">Seu WhatsApp (com DDD)</label>
+            <div className={`flex items-stretch rounded-xl border-2 overflow-hidden transition-colors ${
+              isValid ? "border-[#F5A623]" : "border-gray-300 focus-within:border-[#F5A623]"
+            }`}>
+              <div className="flex items-center gap-1.5 px-3.5 bg-amber-50 border-r-2 border-gray-200 shrink-0">
+                <span className="text-base font-black text-gray-800">+55</span>
+              </div>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={handleChange}
+                placeholder="(00) 00000-0000"
+                className="flex-1 px-3 py-4 text-lg font-bold text-foreground placeholder:text-gray-400 outline-none bg-white"
+              />
             </div>
-            <input
-              type="tel"
-              inputMode="numeric"
-              value={phone}
-              onChange={handleChange}
-              placeholder="(00) 00000-0000"
-              className="flex-1 px-3 py-3.5 text-lg font-bold text-foreground placeholder:text-gray-400 outline-none bg-white"
-            />
           </div>
 
+          {/* Botão principal */}
           <button
             onClick={isValid ? onNext : undefined}
             disabled={!isValid}
-            className={`btn-primary flex items-center justify-center gap-2 transition-opacity ${
-              isValid ? "opacity-100 pulse-glow" : "opacity-40"
+            className={`w-full py-[18px] rounded-[12px] font-black text-white text-[16px] tracking-wide uppercase shadow-md transition-all duration-200 cursor-pointer ${
+              isValid
+                ? "opacity-100 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-105 active:scale-[0.98] pulse-glow"
+                : "opacity-40 cursor-not-allowed"
             }`}
+            style={{ background: isValid ? "linear-gradient(135deg, #F6C346 0%, #F5A623 50%, #D4810A 100%)" : "#ccc" }}
           >
-            Continuar para pagamento <ChevronRight size={18} strokeWidth={3} />
+            CONTINUAR PARA PAGAMENTO
           </button>
 
-          <div className="flex items-center justify-center gap-1.5">
-            <ShieldCheck size={15} className="text-gray-500 shrink-0" />
-            <p className="text-[13px] text-gray-500">
-              Seus dados são usados apenas para entrega das imagens.
+          {/* Banner de segurança */}
+          <div className="flex items-start gap-2.5 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+            <ShieldCheck size={18} className="text-[#F5A623] shrink-0 mt-0.5" />
+            <p className="text-[13px] text-gray-600 leading-snug">
+              Usaremos apenas para entregar suas imagens. Não enviamos spam nem promoções.
             </p>
           </div>
         </div>
