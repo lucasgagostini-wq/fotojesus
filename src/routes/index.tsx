@@ -58,11 +58,15 @@ function AppFlow() {
   const [showUpsell, setShowUpsell]             = useState(false);
   const [pixValue, setPixValue]                 = useState<number>(10.90);
   const [pixLabel, setPixLabel]                 = useState<string>("1 imagem");
-  const [pixCodePlaceholder, setPixCodePlaceholder] = useState<string>("PIX_CODE_1_IMAGE");
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [showPhotoConfirm, setShowPhotoConfirm] = useState(false);
   const [phoneNumber, setPhoneNumber]           = useState<string>("");
   const [showPhoneModal, setShowPhoneModal]     = useState(false);
+  const [pixPaymentId, setPixPaymentId]         = useState<string | null>(null);
+  const [pixRealCode, setPixRealCode]           = useState<string | null>(null);
+  const [pixQrBase64, setPixQrBase64]           = useState<string | null>(null);
+  const [pixCreating, setPixCreating]           = useState(false);
+  const [pixError, setPixError]                 = useState<string | null>(null);
 
   const nextStep = (step: Step) => { window.scrollTo(0, 0); setCurrentStep(step); };
 
@@ -74,16 +78,58 @@ function AppFlow() {
     setUploadedPhotoUrl(null);
   };
 
-  const goToPhone = (value: number, label: string, code: string) => {
-    setPixValue(value); setPixLabel(label); setPixCodePlaceholder(code);
+  const goToPhone = (value: number, label: string) => {
+    setPixValue(value); setPixLabel(label);
     setShowPhoneModal(true);
   };
 
   const handleResultsContinue = () => {
     if (resultsSelected.length === 4) {
-      goToPhone(43.60, "4 imagens", "PIX_CODE_4_IMAGES");
+      goToPhone(43.60, "4 imagens");
     } else {
       setShowUpsell(true);
+    }
+  };
+
+  const handlePhoneConfirm = async () => {
+    setShowPhoneModal(false);
+    setPixCreating(true);
+    setPixPaymentId(null);
+    setPixRealCode(null);
+    setPixQrBase64(null);
+    setPixError(null);
+    nextStep('pix');
+
+    try {
+      const res = await fetch('/api/create-pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: pixValue,
+          label: pixLabel,
+          phoneNumber,
+          styles: selectedStyles,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? 'Erro ao criar cobrança');
+      }
+
+      const { paymentId, pixCode, qrBase64 } = await res.json() as {
+        paymentId: string;
+        pixCode: string | null;
+        qrBase64: string | null;
+      };
+      setPixPaymentId(paymentId);
+      setPixRealCode(pixCode);
+      setPixQrBase64(qrBase64);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao criar cobrança PIX';
+      setPixError(message);
+    } finally {
+      setPixCreating(false);
     }
   };
 
@@ -101,7 +147,16 @@ function AppFlow() {
             <ResultsScreen selectedIds={resultsSelected} setSelectedIds={setResultsSelected} onContinue={handleResultsContinue} />
           )}
           {currentStep === 'pix'      && (
-            <PixScreen value={pixValue} label={pixLabel} pixCode={pixCodePlaceholder} phoneNumber={phoneNumber} />
+            <PixScreen
+              value={pixValue}
+              label={pixLabel}
+              pixCode={pixRealCode}
+              qrBase64={pixQrBase64}
+              paymentId={pixPaymentId}
+              phoneNumber={phoneNumber}
+              isCreating={pixCreating}
+              error={pixError}
+            />
           )}
         </div>
       </div>
@@ -113,8 +168,8 @@ function AppFlow() {
       {showUpsell && (
         <UpsellModal
           selectedIds={resultsSelected}
-          onAccept={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
-          onDecline={(v, l, c) => { setShowUpsell(false); goToPhone(v, l, c); }}
+          onAccept={(v, l) => { setShowUpsell(false); goToPhone(v, l); }}
+          onDecline={(v, l) => { setShowUpsell(false); goToPhone(v, l); }}
           onClose={() => setShowUpsell(false)}
         />
       )}
@@ -122,7 +177,7 @@ function AppFlow() {
         <PhoneModal
           phone={phoneNumber}
           setPhone={setPhoneNumber}
-          onNext={() => { setShowPhoneModal(false); nextStep('pix'); }}
+          onNext={handlePhoneConfirm}
           onClose={() => setShowPhoneModal(false)}
         />
       )}
@@ -543,8 +598,8 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 // ── UPSELL MODAL ──────────────────────────────────────────────────────────────
 function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
   selectedIds: number[];
-  onAccept:  (value: number, label: string, code: string) => void;
-  onDecline: (value: number, label: string, code: string) => void;
+  onAccept:  (value: number, label: string) => void;
+  onDecline: (value: number, label: string) => void;
   onClose: () => void;
 }) {
   const count = selectedIds.length;
@@ -555,10 +610,8 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
       title: "🔥 PROMOÇÃO RELÂMPAGO!",
       strikethrough: "R$ 43,60",
       acceptLabel: "4 imagens",
-      acceptCode: "PIX_CODE_4_IMAGES",
       declineValue: count * 10.90,
       declineLabel: `${count} imagem(ns)`,
-      declineCode: `PIX_CODE_${count}_IMAGES`,
       upsellText: "",
       offerPrice: 0,
       economy: 0,
@@ -610,10 +663,10 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
           </div>
 
           <div className="flex flex-col gap-4 mt-2">
-            <button onClick={() => onAccept(popupData.acceptValue, popupData.acceptLabel, popupData.acceptCode)} className="btn-primary py-4 text-base font-extrabold">
+            <button onClick={() => onAccept(popupData.acceptValue, popupData.acceptLabel)} className="btn-primary py-4 text-base font-extrabold">
               Sim, quero todas! 💕
             </button>
-            <button onClick={() => onDecline(popupData.declineValue, popupData.declineLabel, popupData.declineCode)} className="text-sm text-gray-400 underline font-bold">
+            <button onClick={() => onDecline(popupData.declineValue, popupData.declineLabel)} className="text-sm text-gray-400 underline font-bold">
               Não, obrigado (continuar com R$ {popupData.declineValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
             </button>
           </div>
@@ -823,16 +876,44 @@ function TestimonialCarousel({ images }: { images: string[] }) {
 }
 
 // ── PIX SCREEN ────────────────────────────────────────────────────────────────
-function PixScreen({ value, label, pixCode, phoneNumber }: {
-  value: number; label: string; pixCode: string; phoneNumber: string;
+function PixScreen({ value, label, pixCode, qrBase64, paymentId, phoneNumber, isCreating, error }: {
+  value: number;
+  label: string;
+  pixCode: string | null;
+  qrBase64: string | null;
+  paymentId: string | null;
+  phoneNumber: string;
+  isCreating: boolean;
+  error: string | null;
 }) {
-  const [timeLeft, setTimeLeft] = useState(15 * 60);
-  const [showToast, setShowToast] = useState(false);
+  const [timeLeft, setTimeLeft]       = useState(15 * 60);
+  const [showToast, setShowToast]     = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   useEffect(() => {
+    if (isCreating || !pixCode) return;
     const timer = setInterval(() => setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0)), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isCreating, pixCode]);
+
+  useEffect(() => {
+    if (!paymentId || paymentStatus !== 'pending') return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/payment-status?id=${paymentId}`);
+        if (!res.ok) return;
+        const data = await res.json() as { status: string };
+        if (data.status === 'approved') {
+          setPaymentStatus('approved');
+        } else if (data.status === 'rejected' || data.status === 'cancelled') {
+          setPaymentStatus('rejected');
+        }
+      } catch {
+        // silently ignore — keep polling
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [paymentId, paymentStatus]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -841,10 +922,43 @@ function PixScreen({ value, label, pixCode, phoneNumber }: {
   };
 
   const copyPix = () => {
+    if (!pixCode) return;
     navigator.clipboard.writeText(pixCode);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
+
+  // ── Success screen
+  if (paymentStatus === 'approved') {
+    return (
+      <div className="content-wrapper animate-in fade-in duration-500 text-center flex flex-col items-center gap-6 pt-10">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+          <Check size={40} className="text-green-500" strokeWidth={2.5} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-black text-foreground">Pagamento confirmado! 🎉</h2>
+          <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+            Suas imagens estão sendo enviadas para o seu WhatsApp.
+          </p>
+          {phoneNumber && (
+            <p className="text-brand-gold font-black text-base mt-3">📲 {phoneNumber}</p>
+          )}
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 w-full text-left">
+          <p className="text-sm font-bold text-green-700 leading-snug">
+            ⏱️ A entrega acontece em poucos minutos. Basta abrir o WhatsApp e conferir!
+          </p>
+        </div>
+        <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 w-full">
+          <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+          <p className="text-xs text-gray-600 text-left leading-snug font-medium">
+            💛 Obrigado por ajudar o <strong>Lar Aconchego & Fé</strong>!<br />
+            Sua generosidade leva amor a quem mais precisa.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="content-wrapper animate-in fade-in duration-300">
@@ -872,28 +986,52 @@ function PixScreen({ value, label, pixCode, phoneNumber }: {
           <ShieldCheck className="text-green-500 shrink-0" size={20} />
           <p className="text-xs font-bold text-gray-600">Pagamento processado com segurança pelo Mercado Pago</p>
         </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center gap-3">
-          <Clock className="text-orange-400 shrink-0" size={20} />
-          <p className="text-xs font-bold text-gray-600">
-            Este Pix expira em <span className="text-orange-500 font-black">{formatTime(timeLeft)}</span>
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <button onClick={copyPix} className="btn-primary flex items-center justify-center gap-2">
-          <Copy size={20} /> COPIAR CÓDIGO PIX
-        </button>
-      </div>
-
-      <div className="text-center">
-        <p className="text-sm font-bold text-gray-500">Ou escaneie o QR Code:</p>
-        <div className="mt-4 mx-auto w-48 h-48 bg-white border-4 border-white shadow-lg rounded-xl flex items-center justify-center">
-          <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-            <p className="text-gray-400 text-[10px] text-center font-medium px-3">QR Code<br />disponível em breve</p>
+        {!isCreating && pixCode && (
+          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center gap-3">
+            <Clock className="text-orange-400 shrink-0" size={20} />
+            <p className="text-xs font-bold text-gray-600">
+              Este Pix expira em <span className="text-orange-500 font-black">{formatTime(timeLeft)}</span>
+            </p>
           </div>
-        </div>
+        )}
       </div>
+
+      {error ? (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
+          <p className="text-sm font-bold text-red-600">❌ {error}</p>
+          <p className="text-xs text-red-400 mt-2">Volte e tente novamente, ou entre em contato pelo WhatsApp.</p>
+        </div>
+      ) : isCreating ? (
+        <div className="flex flex-col items-center gap-4 py-6">
+          <div className="w-10 h-10 border-[3px] border-brand-gold border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-bold text-gray-500">Gerando cobrança PIX...</p>
+        </div>
+      ) : (
+        <>
+          <div>
+            <button onClick={copyPix} className="btn-primary flex items-center justify-center gap-2">
+              <Copy size={20} /> COPIAR CÓDIGO PIX
+            </button>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm font-bold text-gray-500">Ou escaneie o QR Code:</p>
+            <div className="mt-4 mx-auto w-48 h-48 bg-white border-4 border-white shadow-lg rounded-xl flex items-center justify-center">
+              {qrBase64 ? (
+                <img
+                  src={`data:image/png;base64,${qrBase64}`}
+                  alt="QR Code PIX"
+                  className="w-40 h-40 rounded-lg"
+                />
+              ) : (
+                <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-400 text-[10px] text-center font-medium px-3">QR Code<br />disponível em breve</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-3">
         <div className="bg-white rounded-2xl p-4 flex items-start gap-3 shadow-sm border border-gray-50">
@@ -922,7 +1060,6 @@ function PixScreen({ value, label, pixCode, phoneNumber }: {
         </div>
       </div>
 
-      {/* Social proof — carousel com rotação */}
       <div className="mt-8 mb-28">
         <div className="text-center mb-2">
           <h3 className="text-brand-gold font-black">💛 Quem já guardou seu momento com Jesus</h3>
@@ -931,10 +1068,12 @@ function PixScreen({ value, label, pixCode, phoneNumber }: {
         <TestimonialCarousel images={DEPOIMENTOS} />
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center justify-center gap-3 pb-safe" style={{ paddingTop: '12px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-        <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-bold text-gray-500">Aguardando confirmação do pagamento...</span>
-      </div>
+      {!isCreating && pixCode && paymentStatus === 'pending' && (
+        <div className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center justify-center gap-3" style={{ paddingTop: '12px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-gray-500">Aguardando confirmação do pagamento...</span>
+        </div>
+      )}
 
       {showToast && (
         <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-2 rounded-full text-sm font-bold animate-in fade-in slide-in-from-top-4 duration-300 z-[60]">
