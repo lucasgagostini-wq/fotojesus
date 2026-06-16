@@ -3,6 +3,7 @@ import {
   ClientInputError,
   createSupabaseAdminClient,
   getRequiredEnv,
+  isDev,
   normalizePhoneNumber,
 } from "./_lib/payment-flow.js";
 import {
@@ -13,6 +14,42 @@ import {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
+
+  if (isDev()) {
+    console.warn("[DEV MOCK] recover-order — retornando pedido mock aprovado");
+    return res.status(200).json({
+      order: {
+        accessToken: "dev_token_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        amount: 1090,
+        createdAt: new Date().toISOString(),
+        deliveries: [],
+        id: "devorder0-0000-0000-0000-000000000000",
+        label: "1 foto com Jesus",
+        mpStatus: "approved",
+        orderStatus: "payment_approved",
+        paidAt: new Date().toISOString(),
+        phoneNumber: null,
+        pixCode: null,
+        priceKey: "single",
+        purchasedStyleIds: [1],
+        qrBase64: null,
+        recoveryCode: "12345678",
+        results: [
+          {
+            completedAt: null,
+            imageUrl: null,
+            lastError: null,
+            previewUrl: null,
+            resultPath: null,
+            status: "pending",
+            styleId: 1,
+          },
+        ],
+        selectedStyleIds: [1],
+        sourcePreviewUrl: null,
+      },
+    });
+  }
 
   try {
     const body = (req.body ?? {}) as {

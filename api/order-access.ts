@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createSupabaseAdminClient, getRequiredEnv } from "./_lib/payment-flow.js";
+import { createSupabaseAdminClient, getRequiredEnv, isDev } from "./_lib/payment-flow.js";
 import {
   buildOrderAccessResponse,
   getOrderByAccess,
@@ -18,6 +18,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader("Cache-Control", "no-store");
+
+  if (isDev()) {
+    console.warn("[DEV MOCK] order-access — retornando sessão mock");
+    return res.status(200).json({
+      order: {
+        accessToken: typeof token === "string" ? token : "dev_token_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        amount: null,
+        createdAt: new Date().toISOString(),
+        deliveries: [],
+        id: typeof id === "string" ? id : "devorder0-0000-0000-0000-000000000000",
+        label: null,
+        mpStatus: "",
+        orderStatus: "photo_uploaded",
+        paidAt: null,
+        phoneNumber: null,
+        pixCode: null,
+        priceKey: null,
+        purchasedStyleIds: [],
+        qrBase64: null,
+        recoveryCode: "12345678",
+        results: [],
+        selectedStyleIds: [],
+        sourcePreviewUrl: null,
+      },
+    });
+  }
 
   try {
     const env = getRequiredEnv();

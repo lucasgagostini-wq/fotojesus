@@ -5,6 +5,7 @@ import {
   createSupabaseAdminClient,
   getPublicAppBaseUrl,
   getRequiredEnv,
+  isDev,
   parseCheckoutRequest,
 } from "./_lib/payment-flow.js";
 import {
@@ -15,6 +16,22 @@ import {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
+
+  if (isDev()) {
+    console.warn("[DEV MOCK] create-pix — env vars ausentes, retornando mock");
+    const body = (req.body ?? {}) as { accessToken?: string; orderId?: string };
+    const accessToken = typeof body.accessToken === "string" ? body.accessToken : "dev_token_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    const orderId = typeof body.orderId === "string" ? body.orderId : "devorder0-0000-0000-0000-000000000000";
+    return res.status(200).json({
+      accessToken,
+      orderId,
+      paymentId: "DEV-PAY-00000001",
+      pixCode: "00020126580014br.gov.bcb.pix0136devpixkeyfotojesuslocaltesting00005204000053039865802BR5924FotoJesus Dev Local6009SAOPAULO62070503***6304ABCD",
+      qrBase64: null,
+      recoveryCode: "12345678",
+      status: "pending",
+    });
+  }
 
   try {
     const env = getRequiredEnv();

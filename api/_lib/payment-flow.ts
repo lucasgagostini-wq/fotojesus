@@ -29,6 +29,14 @@ export type CheckoutRequestInput = {
   quote: ReturnType<typeof getCheckoutQuote>;
 };
 
+export function isDev(): boolean {
+  return (
+    !process.env.MP_ACCESS_TOKEN ||
+    !process.env.SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
 export function getRequiredEnv(): RequiredEnv {
   const accessToken = process.env.MP_ACCESS_TOKEN;
   const supabaseUrl = process.env.SUPABASE_URL;

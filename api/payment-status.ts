@@ -3,6 +3,7 @@ import {
   createMercadoPagoPaymentClient,
   createSupabaseAdminClient,
   getRequiredEnv,
+  isDev,
   syncOrderPaymentStatus,
 } from "./_lib/payment-flow.js";
 import { getOrderByAccess, writeOrderEvent } from "./_lib/orders.js";
@@ -20,6 +21,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader("Cache-Control", "no-store");
+
+  if (isDev()) {
+    console.warn("[DEV MOCK] payment-status — aprovando pagamento automaticamente");
+    return res.status(200).json({
+      orderStatus: "payment_approved",
+      paidAt: new Date().toISOString(),
+      status: "approved",
+    });
+  }
 
   try {
     const env = getRequiredEnv();
