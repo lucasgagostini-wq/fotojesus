@@ -13,6 +13,7 @@ import {
   loadStoredOrderSession,
   saveStoredOrderSession,
 } from "../lib/order-session";
+import { pixelTrack } from "../lib/pixel";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import hugImg               from "../assets/jesus-moments/hug.png";
@@ -389,6 +390,8 @@ function AppFlow() {
     setPixQrBase64(null);
     setPixError(null);
     setInitialPaymentStatus("pending");
+    pixelTrack('Lead');
+    pixelTrack('InitiateCheckout');
     nextStep('pix');
 
     try {
@@ -506,7 +509,7 @@ function AppFlow() {
           {currentStep === 'styles'   && (
             <StylesScreen selectedIds={selectedStyles} setSelectedIds={setSelectedStyles} onNext={() => nextStep('loading')} />
           )}
-          {currentStep === 'loading'  && <LoadingScreen  onFinish={() => nextStep('results')} />}
+          {currentStep === 'loading'  && <LoadingScreen  onFinish={() => { nextStep('results'); pixelTrack('ViewContent'); }} />}
           {currentStep === 'results'  && (
             <ResultsScreen selectedIds={resultsSelected} setSelectedIds={setResultsSelected} onContinue={handleResultsContinue} />
           )}
@@ -1525,6 +1528,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
     navigator.clipboard.writeText(pixCode);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
+    pixelTrack('AddPaymentInfo');
   };
 
   // ── Success screen
