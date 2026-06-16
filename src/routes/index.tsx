@@ -196,7 +196,9 @@ function AppFlow() {
 
   const nextStep = (step: Step) => { window.scrollTo(0, 0); setCurrentStep(step); };
 
-  const hydrateOrder = useCallback((summary: OrderSummary) => {
+  const hydrateOrder = useCallback((summary: OrderSummary, options?: { navigate?: boolean }) => {
+    const shouldNavigate = options?.navigate ?? true;
+
     const session = persistOrderSession(summary);
     setOrderSession(session);
     setOrderSummary(summary);
@@ -219,7 +221,19 @@ function AppFlow() {
       setInitialPaymentStatus("pending");
     }
 
-    if (PIX_RECOVERABLE_STATUSES.has(summary.orderStatus) || summary.mpStatus === "pending") {
+    // Hidratação em segundo plano (ex.: upload pós-confirmação) apenas atualiza os
+    // dados do pedido — nunca redireciona o usuário pelo funil.
+    if (!shouldNavigate) {
+      return;
+    }
+
+    // Só reabrir o checkout PIX se houver evidência REAL de PIX criado.
+    // mpStatus === "pending" sozinho NÃO conta: todo pedido recém-criado nasce
+    // "pending" no banco, mesmo sem nenhum PIX gerado.
+    const hasRealPix = Boolean(summary.pixCode) || Boolean(summary.qrBase64);
+    const checkoutAlreadyStarted = PIX_RECOVERABLE_STATUSES.has(summary.orderStatus);
+
+    if (checkoutAlreadyStarted || hasRealPix) {
       setCurrentStep("pix");
       return;
     }
@@ -324,7 +338,9 @@ function AppFlow() {
       }
 
       const data = await res.json() as OrderAccessResponse;
-      hydrateOrder(data.order);
+      // Upload roda em segundo plano: hidrata os dados sem mexer no passo atual
+      // do funil (o usuário já avançou para "styles" e segue o fluxo normal).
+      hydrateOrder(data.order, { navigate: false });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao salvar sua foto";
       setPhotoUploadError(message);
