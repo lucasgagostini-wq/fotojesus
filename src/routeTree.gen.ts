@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as V2RouteImport } from './routes/v2'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AparecidaRouteImport } from './routes/aparecida'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BMTHIndexRouteImport } from './routes/BMTH/index'
 import { Route as BMTHOrderIdRouteImport } from './routes/BMTH/$orderId'
@@ -23,6 +24,11 @@ const V2Route = V2RouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AparecidaRoute = AparecidaRouteImport.update({
+  id: '/aparecida',
+  path: '/aparecida',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +49,7 @@ const BMTHOrderIdRoute = BMTHOrderIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aparecida': typeof AparecidaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/v2': typeof V2Route
   '/BMTH/$orderId': typeof BMTHOrderIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aparecida': typeof AparecidaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/v2': typeof V2Route
   '/BMTH/$orderId': typeof BMTHOrderIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aparecida': typeof AparecidaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/v2': typeof V2Route
   '/BMTH/$orderId': typeof BMTHOrderIdRoute
@@ -65,14 +74,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH/'
+  fullPaths:
+    | '/'
+    | '/aparecida'
+    | '/sitemap.xml'
+    | '/v2'
+    | '/BMTH/$orderId'
+    | '/BMTH/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH'
-  id: '__root__' | '/' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH/'
+  to: '/' | '/aparecida' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH'
+  id:
+    | '__root__'
+    | '/'
+    | '/aparecida'
+    | '/sitemap.xml'
+    | '/v2'
+    | '/BMTH/$orderId'
+    | '/BMTH/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AparecidaRoute: typeof AparecidaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   V2Route: typeof V2Route
   BMTHOrderIdRoute: typeof BMTHOrderIdRoute
@@ -93,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aparecida': {
+      id: '/aparecida'
+      path: '/aparecida'
+      fullPath: '/aparecida'
+      preLoaderRoute: typeof AparecidaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,6 +151,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AparecidaRoute: AparecidaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   V2Route: V2Route,
   BMTHOrderIdRoute: BMTHOrderIdRoute,

@@ -38,17 +38,17 @@ import dep3 from "../assets/depoimentos/depoimento-3.jpeg";
 import dep4 from "../assets/depoimentos/depoimento-4.jpeg";
 import dep5 from "../assets/depoimentos/depoimento-5.jpeg";
 
-export const Route = createFileRoute("/")({
-  component: AppFlow,
+export const Route = createFileRoute("/aparecida")({
+  component: AppFlowAparecida,
 });
 
 type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'pix';
 
 const STYLES = [
-  { id: 1, label: "Jesus te abraçando",         img: hugImg,          imgPixelado: hugPixeladoImg,          description: "Jesus te abraçando" },
-  { id: 2, label: "Jesus ao seu lado sorrindo", img: smilingImg,      imgPixelado: smilingPixeladoImg,      description: "Jesus ao seu lado sorrindo" },
-  { id: 3, label: "Jesus segurando sua mão",    img: holdingHandsImg, imgPixelado: holdingHandsPixeladoImg, description: "Jesus segurando sua mão" },
-  { id: 4, label: "Momento no campo com Jesus", img: fieldImg,        imgPixelado: fieldPixeladoImg,        description: "Momento no campo com Jesus" },
+  { id: 1, label: "Nossa Senhora te abraçando",      img: hugImg,          imgPixelado: hugPixeladoImg,          description: "Nossa Senhora te abraçando" },
+  { id: 2, label: "Nossa Senhora ao seu lado",        img: smilingImg,      imgPixelado: smilingPixeladoImg,      description: "Nossa Senhora ao seu lado" },
+  { id: 3, label: "Nossa Senhora segurando sua mão",  img: holdingHandsImg, imgPixelado: holdingHandsPixeladoImg, description: "Nossa Senhora segurando sua mão" },
+  { id: 4, label: "Um momento de graça com Ela",      img: fieldImg,        imgPixelado: fieldPixeladoImg,        description: "Um momento de graça com Ela" },
 ];
 
 const DEPOIMENTOS = [dep1, dep2, dep3, dep4, dep5];
@@ -161,10 +161,10 @@ function persistOrderSession(summary: OrderSummary): StoredOrderSession {
   return session;
 }
 
-// ── AppFlow ───────────────────────────────────────────────────────────────────
-function AppFlow() {
+// ── AppFlowAparecida ──────────────────────────────────────────────────────────
+function AppFlowAparecida() {
   const [currentStep, setCurrentStep]           = useState<Step>('landing');
-  const [selectedStyles, setSelectedStyles]     = useState<number[]>([STYLES[0].id]);
+  const [selectedStyles, setSelectedStyles]     = useState<number[]>([]);
   const [resultsSelected, setResultsSelected]   = useState<number[]>([]);
   const [showUpsell, setShowUpsell]             = useState(false);
   const [pixValue, setPixValue]                 = useState<number>(10.90);
@@ -560,7 +560,7 @@ function LandingScreen({ onNext, onRecover }: { onNext: () => void; onRecover: (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
       <header className="mb-2">
         <h1 className="text-[28px] font-black text-foreground leading-tight">
-          ✝️ Veja como seria um momento seu ao lado de{" "}
+          🙏 Veja como seria um momento seu ao lado de{" "}
           <span
             style={{
               background: "linear-gradient(135deg, #F5A623 0%, #E8960A 55%, #F5A623 100%)",
@@ -569,11 +569,11 @@ function LandingScreen({ onNext, onRecover }: { onNext: () => void; onRecover: (
               backgroundClip: "text",
             }}
           >
-            Jesus
+            Nossa Senhora Aparecida
           </span>
         </h1>
         <p className="text-gray-700 mt-2 text-base font-medium px-4">
-          Crie uma imagem emocionante e única em poucos segundos
+          Crie uma imagem emocionante e única com Nossa Senhora em poucos segundos
         </p>
       </header>
 
@@ -621,7 +621,7 @@ function UploadScreen({ onFileSelect }: { onFileSelect: (file: File) => void }) 
 
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <p className="text-base leading-relaxed text-gray-800 font-medium text-center">
-          A sua imagem ao lado de Jesus é criada com uma{" "}
+          A sua imagem ao lado de Nossa Senhora Aparecida é criada com uma{" "}
           <strong className="text-black">Inteligência Artificial ultra realista</strong>. Por isso, para criarmos
           uma imagem que <strong className="text-black">realmente seja parecida com você</strong>, precisamos que a
           sua foto siga as orientações abaixo:
@@ -695,7 +695,7 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry, isUploading, error }:
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[420px] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto" style={{ maxHeight: '90dvh' }}>
         <div className="p-5 relative">
-          <button onClick={onRetry} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600" disabled={isUploading}>
+          <button onClick={onRetry} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
             <X size={24} />
           </button>
 
@@ -736,23 +736,9 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry, isUploading, error }:
           <div className="flex flex-col gap-3 pb-2">
             <button
               onClick={onConfirm}
-              className={`flex items-center justify-center gap-2 rounded-[12px] py-[18px] font-extrabold uppercase shadow-md transition-all ${
-                isUploading
-                  ? "w-full cursor-not-allowed bg-gray-300 text-white"
-                  : "btn-primary"
-              }`}
-              disabled={isUploading}
+              className="btn-primary flex items-center justify-center gap-2"
             >
-              {isUploading ? (
-                <>
-                  <span className="w-4 h-4 rounded-full border-2 border-white/80 border-t-transparent animate-spin" />
-                  SALVANDO FOTO...
-                </>
-              ) : (
-                <>
-                  SIM, AVANÇAR <ChevronRight size={18} strokeWidth={3} />
-                </>
-              )}
+              SIM, AVANÇAR <ChevronRight size={18} strokeWidth={3} />
             </button>
             <button onClick={onRetry} className="w-full bg-gray-100 text-gray-600 font-bold text-center py-3 rounded-xl active:scale-[0.98] transition-all">
               Escolher outra foto
@@ -768,20 +754,8 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry, isUploading, error }:
 function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
   selectedIds: number[]; setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>; onNext: () => void;
 }) {
-  useEffect(() => {
-    if (selectedIds.length === 0) {
-      setSelectedIds([STYLES[0].id]);
-    }
-  }, [selectedIds, setSelectedIds]);
-
   const toggleSelection = (id: number) => {
-    setSelectedIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.length === 1 ? prev : prev.filter((item) => item !== id);
-      }
-
-      return [...prev, id];
-    });
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
   };
 
   return (
@@ -822,7 +796,8 @@ function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
       </div>
 
       <button
-        className="btn-primary mt-8 flex items-center justify-center gap-2"
+        className={`btn-primary mt-8 flex items-center justify-center gap-2 transition-opacity ${selectedIds.length === 0 ? "opacity-50" : "opacity-100"}`}
+        disabled={selectedIds.length === 0}
         onClick={onNext}
       >
         AVANÇAR <ChevronRight size={18} strokeWidth={3} />
@@ -900,7 +875,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
     <div className="w-full max-w-[480px] px-5 py-4 flex flex-col gap-3 animate-in fade-in duration-300">
       <header className="text-center">
         <h1 className="text-[22px] font-extrabold text-black leading-[1.08]">
-          ✝️ Veja como ficou seu<br />momento com Jesus
+          🙏 Veja como ficou seu<br />momento com Nossa Senhora
         </h1>
         <p className="text-gray-600 italic mt-1.5 text-sm leading-snug">
           "Um momento especial que você pode guardar para sempre"
@@ -943,14 +918,12 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
                 isSelected ? "border-brand-gold ring-2 ring-brand-gold shadow-md" : "border-dashed border-brand-gold/60"
               }`}
             >
-              {/* Foto pixelada — revelação via WhatsApp após pagamento */}
               <img
                 src={style.imgPixelado}
                 alt={style.label}
                 className="absolute inset-0 w-full h-full object-cover"
               />
 
-              {/* Badge preço — canto superior esquerdo */}
               <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-start gap-0 px-1.5 pt-1.5">
                 <span className="bg-black/70 text-white text-[10px] font-extrabold px-1.5 py-[2px] rounded-sm leading-tight backdrop-blur-[1px]">
                   Apenas R$ 10,90
@@ -960,7 +933,6 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
                 </span>
               </div>
 
-              {/* Botão TOQUE — centro, só quando não selecionado */}
               {!isSelected && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="bg-brand-gold text-white text-[12px] font-black px-3.5 py-1.5 rounded-full shadow-md tracking-wide">
@@ -969,7 +941,6 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
                 </div>
               )}
 
-              {/* Rótulo inferior — translúcido com nome do estilo */}
               <div className={`absolute bottom-0 inset-x-0 z-10 transition-colors duration-200 ${
                 isSelected ? "bg-[#1e293b]/95" : "bg-[#4da8da]/95"
               }`}>
@@ -995,7 +966,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               <p className="text-[14px] text-gray-600 font-semibold leading-tight">Sua imagem fica disponível por tempo limitado</p>
             </div>
             <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[14px] leading-none">✝️</span>
+              <span className="text-[14px] leading-none">🙏</span>
               <p className="text-[14px] text-gray-800 font-semibold leading-tight">Imagem pronta para você guardar para sempre</p>
             </div>
           </div>
@@ -1030,7 +1001,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
           <div className="mt-4 mb-20">
             <div className="text-center mb-1.5">
               <h3 className="font-black text-black text-base leading-tight">💬 Veja o que outras pessoas estão sentindo</h3>
-              <p className="text-sm font-bold text-gray-500 mt-0.5 leading-tight">Centenas de famílias já guardaram seu momento com Jesus</p>
+              <p className="text-sm font-bold text-gray-500 mt-0.5 leading-tight">Centenas de famílias já guardaram seu momento com Nossa Senhora</p>
             </div>
             <TestimonialCarousel images={DEPOIMENTOS} />
           </div>
@@ -1072,9 +1043,9 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
       offerPrice: 0,
       economy: 0,
     };
-    if (count === 1) return { ...base, upsellText: "Acrescente as outras 3 fotos com Jesus que você não selecionou por apenas", offerPrice: 22.60, economy: 21.00 };
-    if (count === 2) return { ...base, upsellText: "Acrescente as outras 2 fotos com Jesus que você não selecionou por apenas", offerPrice: 29.60, economy: 14.00 };
-    return { ...base, upsellText: "Acrescente a outra foto com Jesus que você não selecionou por apenas", offerPrice: 36.60, economy: 7.00 };
+    if (count === 1) return { ...base, upsellText: "Acrescente as outras 3 fotos com Nossa Senhora que você não selecionou por apenas", offerPrice: 22.60, economy: 21.00 };
+    if (count === 2) return { ...base, upsellText: "Acrescente as outras 2 fotos com Nossa Senhora que você não selecionou por apenas", offerPrice: 29.60, economy: 14.00 };
+    return { ...base, upsellText: "Acrescente a outra foto com Nossa Senhora que você não selecionou por apenas", offerPrice: 36.60, economy: 7.00 };
   })();
 
   return (
@@ -1131,7 +1102,7 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
   );
 }
 
-// ── PHONE MODAL ───────────────────────────────────────────────────────────────
+// ── RECOVERY MODAL ────────────────────────────────────────────────────────────
 function RecoveryModal({
   phone,
   setPhone,
@@ -1250,7 +1221,6 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-[420px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
 
-        {/* Cabeçalho verde de vinculacao */}
         <div className="relative bg-[#25D366] px-5 py-5 text-center">
           <button
             onClick={onClose}
@@ -1275,7 +1245,6 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
             </p>
           </div>
 
-          {/* Input com prefixo +55 fixo */}
           <div className={`flex items-stretch rounded-xl border-2 overflow-hidden transition-colors ${
             isValid ? "border-[#25D366]" : "border-gray-300"
           }`}>
@@ -1326,7 +1295,6 @@ function TestimonialCarousel({ images }: { images: string[] }) {
   const total = images.length;
   const CLONE = 2;
 
-  // [tail-2, tail-1, img0..imgN-1, head0, head1]
   const extended = [
     images[(total - 2 + total) % total],
     images[(total - 1 + total) % total],
@@ -1494,7 +1462,6 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  // ── Success screen
   if (paymentStatus === 'approved') {
     return (
       <div className="content-wrapper animate-in fade-in duration-500 text-center flex flex-col items-center gap-6 pt-10">
@@ -1637,7 +1604,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
 
       <div className="mt-8 mb-28">
         <div className="text-center mb-2">
-          <h3 className="text-brand-gold font-black">💛 Quem já guardou seu momento com Jesus</h3>
+          <h3 className="text-brand-gold font-black">💛 Quem já guardou seu momento com Nossa Senhora</h3>
           <p className="text-[11px] font-bold text-gray-400 mt-1">Veja mensagens de quem recebeu suas imagens</p>
         </div>
         <TestimonialCarousel images={DEPOIMENTOS} />
