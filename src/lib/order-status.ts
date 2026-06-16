@@ -9,6 +9,7 @@ export const ORDER_STATUSES = [
   "delivery_pending",
   "delivery_retry_requested",
   "delivery_sent",
+  "delivered",
   "processing_failed",
   "delivery_failed",
   "cancelled",
@@ -44,6 +45,7 @@ export function isPaidOrderStatus(status: OrderStatus): boolean {
     "delivery_pending",
     "delivery_retry_requested",
     "delivery_sent",
+    "delivered",
     "processing_failed",
     "delivery_failed",
   ].includes(status);
