@@ -13,6 +13,7 @@ import {
   normalizeStyleIds,
   writeOrderEvent,
 } from "./_lib/orders.js";
+import { notifyFlowError, notifyPixGenerated } from "./_lib/discord.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
@@ -171,6 +172,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       supabase,
     });
 
+    await notifyPixGenerated({
+      amount: quote.amount,
+      orderId: order.id,
+      paymentId,
+      phone: phoneNumber,
+      selectedStyleIds: quote.selectedStyleIds,
+    });
+
     return res.status(200).json({
       accessToken: order.access_token,
       orderId: order.id,
@@ -187,6 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.error("[create-pix]", err);
+    await notifyFlowError({ endpoint: "create-pix", message });
     return res.status(500).json({ error: message });
   }
 }

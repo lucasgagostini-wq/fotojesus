@@ -7,6 +7,7 @@ import {
   syncOrderPaymentStatus,
 } from "./_lib/payment-flow.js";
 import { getOrderByAccess, writeOrderEvent } from "./_lib/orders.js";
+import { notifyFlowError } from "./_lib/discord.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).end();
@@ -79,6 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
     console.error("[payment-status]", err);
+    await notifyFlowError({ endpoint: "payment-status", message });
     return res.status(500).json({ error: message });
   }
 }

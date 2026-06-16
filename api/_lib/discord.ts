@@ -1,0 +1,154 @@
+/**
+ * Helper centralizado de notificações Discord para eventos de pagamento.
+ * Nunca lança exceção — falha de notificação jamais quebra o fluxo de PIX/pagamento.
+ * A URL vem exclusivamente da env DISCORD_WEBHOOK_URL (nunca hardcoded).
+ */
+
+const STYLE_LABELS: Record<number, string> = {
+  1: "Jesus te abraçando",
+  2: "Jesus ao seu lado sorrindo",
+  3: "Jesus segurando sua mão",
+  4: "Momento no campo com Jesus",
+};
+
+const COLOR = {
+  approved: 0xf5760a, // laranja "fogo"
+  error: 0xfacc15, // amarelo
+  pix: 0x00a3e0, // azul
+  rejected: 0xef4444, // vermelho
+};
+
+function fmtAmount(amount: null | number | undefined): string {
+  if (amount == null) return "—";
+  return `R$ ${amount.toFixed(2).replace(".", ",")}`;
+}
+
+function fmtPhone(phone: null | string | undefined): string {
+  if (!phone) return "—";
+  const d = phone.replace(/\D/g, "");
+  if (d.length === 11) return `+55 (${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  return phone;
+}
+
+function fmtStyles(styleIds: number[] | null | undefined): string {
+  if (!styleIds || styleIds.length === 0) return "—";
+  return styleIds.map((id) => `${id} — ${STYLE_LABELS[id] ?? "estilo"}`).join("\n");
+}
+
+function nowSaoPaulo(): string {
+  return new Date().toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
+type Embed = {
+  color: number;
+  fields: { inline?: boolean; name: string; value: string }[];
+  timestamp?: string;
+  title: string;
+};
+
+/** Envio de baixo nível — fire-and-forget, swallow de qualquer erro. */
+async function send(embed: Embed): Promise<void> {
+  const url = process.env.DISCORD_WEBHOOK_URL;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      body: JSON.stringify({ embeds: [{ timestamp: new Date().toISOString(), ...embed }] }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+  } catch (err) {
+    console.error("[discord] notification failed", err);
+  }
+}
+
+// ─────────────────────────── Evento 1 — PIX gerado ────────────────────────────
+
+export async function notifyPixGenerated(params: {
+  amount: null | number;
+  orderId: string;
+  paymentId: null | string;
+  phone: null | string;
+  selectedStyleIds: number[];
+}): Promise<void> {
+  await send({
+    color: COLOR.pix,
+    fields: [
+      { inline: true, name: "Valor", value: fmtAmount(params.amount) },
+      { inline: true, name: "Status", value: "pending" },
+      { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
+      { inline: false, name: "Estilos", value: fmtStyles(params.selectedStyleIds) },
+      { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
+      { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },
+      { inline: false, name: "Data", value: nowSaoPaulo() },
+    ],
+    title: "🧾 PIX GERADO",
+  });
+}
+
+// ─────────────────────── Evento 2 — Pagamento aprovado ────────────────────────
+
+export async function notifyPaymentApproved(params: {
+  amount: null | number;
+  orderId: string;
+  paymentId: null | string;
+  phone: null | string;
+  purchasedStyleIds: number[];
+}): Promise<void> {
+  await send({
+    color: COLOR.approved,
+    fields: [
+      { inline: true, name: "Valor", value: fmtAmount(params.amount) },
+      { inline: true, name: "Status", value: "approved" },
+      { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
+      { inline: false, name: "Estilos", value: fmtStyles(params.purchasedStyleIds) },
+      { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
+      { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },
+      { inline: false, name: "Data", value: nowSaoPaulo() },
+    ],
+    title: "🔥 PAGAMENTO APROVADO",
+  });
+}
+
+// ─────────────────────── Evento 3 — Pagamento rejeitado ───────────────────────
+
+export async function notifyPaymentRejected(params: {
+  amount: null | number;
+  orderId: string;
+  paymentId: null | string;
+  phone: null | string;
+  status?: string;
+}): Promise<void> {
+  await send({
+    color: COLOR.rejected,
+    fields: [
+      { inline: true, name: "Valor", value: fmtAmount(params.amount) },
+      { inline: true, name: "Status", value: params.status ?? "rejected" },
+      { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
+      { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
+      { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },
+      { inline: false, name: "Data", value: nowSaoPaulo() },
+    ],
+    title: "❌ PAGAMENTO REJEITADO",
+  });
+}
+
+// ─────────────────────────────── Evento 4 — Erro ──────────────────────────────
+
+export async function notifyFlowError(params: {
+  endpoint: string;
+  message: string;
+}): Promise<void> {
+  await send({
+    color: COLOR.error,
+    fields: [
+      { inline: false, name: "Endpoint", value: params.endpoint },
+      { inline: false, name: "Erro", value: params.message.slice(0, 1000) },
+      { inline: false, name: "Data", value: nowSaoPaulo() },
+    ],
+    title: "⚠️ ERRO NO FLUXO",
+  });
+}

@@ -7,47 +7,11 @@ import {
   syncOrderPaymentStatus,
 } from "./_lib/payment-flow.js";
 import { normalizeStyleIds, writeOrderEvent } from "./_lib/orders.js";
-
-async function notifyDiscord(params: {
-  amount: null | number;
-  label: null | string;
-  orderId: string;
-  phone: null | string;
-  purchasedStyleIds: number[];
-}) {
-  const url = process.env.DISCORD_WEBHOOK_URL;
-  if (!url) return;
-
-  const { amount, label, orderId, phone, purchasedStyleIds } = params;
-  const stylesText = purchasedStyleIds.length > 0 ? `Estilos ${purchasedStyleIds.join(", ")}` : "—";
-  const amountText = amount != null ? `R$ ${amount.toFixed(2).replace(".", ",")}` : "—";
-
-  const payload = {
-    embeds: [
-      {
-        color: 0x25d366,
-        fields: [
-          { inline: true, name: "💰 Valor", value: amountText },
-          { inline: true, name: "📦 Produto", value: label ?? "—" },
-          { inline: true, name: "🎨 Estilos", value: stylesText },
-          { inline: false, name: "📱 WhatsApp", value: phone ? `+55 ${phone}` : "—" },
-          { inline: false, name: "🔑 Order ID", value: `\`${orderId}\`` },
-        ],
-        title: "🎉 Nova venda FotoJesus!",
-      },
-    ],
-  };
-
-  try {
-    await fetch(url, {
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-    });
-  } catch (err) {
-    console.error("[webhook] Discord notification failed", err);
-  }
-}
+import {
+  notifyFlowError,
+  notifyPaymentApproved,
+  notifyPaymentRejected,
+} from "./_lib/discord.js";
 
 function getWebhookPaymentId(req: VercelRequest): null | string {
   const queryDataId = req.query["data.id"];
@@ -160,12 +124,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (syncResult.status === "approved") {
-      await notifyDiscord({
+      await notifyPaymentApproved({
         amount: order.amount,
-        label: order.label,
         orderId: externalReference,
+        paymentId: syncResult.paymentId ?? String(paymentData.id),
         phone: order.phone,
         purchasedStyleIds: normalizeStyleIds(order.purchased_styles),
+      });
+    } else if (syncResult.status === "rejected" || syncResult.status === "cancelled") {
+      await notifyPaymentRejected({
+        amount: order.amount,
+        orderId: externalReference,
+        paymentId: syncResult.paymentId ?? String(paymentData.id),
+        phone: order.phone,
+        status: syncResult.status,
       });
     }
 
@@ -184,6 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
     console.error("[webhook]", err);
+    await notifyFlowError({ endpoint: "webhook", message });
     return res.status(500).json({ error: message });
   }
 }
