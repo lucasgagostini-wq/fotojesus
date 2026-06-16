@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Camera, Image as ImageIcon, XCircle, Check, ShieldCheck, Clock, Copy, ChevronRight, ChevronLeft, X } from "lucide-react";
+import {
+  getBaseTotalForCount,
+  getCheckoutQuote,
+  getUpsellPriceKey,
+  type CheckoutPriceKey,
+} from "../lib/checkout-pricing";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
 import hugImg               from "../assets/jesus-moments/hug.png";
@@ -57,11 +63,14 @@ function AppFlow() {
   const [showUpsell, setShowUpsell]             = useState(false);
   const [pixValue, setPixValue]                 = useState<number>(10.90);
   const [pixLabel, setPixLabel]                 = useState<string>("1 imagem");
+  const [checkoutPriceKey, setCheckoutPriceKey] = useState<CheckoutPriceKey>("single");
+  const [checkoutStyleIds, setCheckoutStyleIds] = useState<number[]>([]);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [showPhotoConfirm, setShowPhotoConfirm] = useState(false);
   const [phoneNumber, setPhoneNumber]           = useState<string>("");
   const [showPhoneModal, setShowPhoneModal]     = useState(false);
-  const [pixPaymentId, setPixPaymentId]         = useState<string | null>(null);
+  const [pixOrderId, setPixOrderId]             = useState<string | null>(null);
+  const [pixStatusToken, setPixStatusToken]     = useState<string | null>(null);
   const [pixRealCode, setPixRealCode]           = useState<string | null>(null);
   const [pixQrBase64, setPixQrBase64]           = useState<string | null>(null);
   const [pixCreating, setPixCreating]           = useState(false);
@@ -77,14 +86,18 @@ function AppFlow() {
     setUploadedPhotoUrl(null);
   };
 
-  const goToPhone = (value: number, label: string) => {
-    setPixValue(value); setPixLabel(label);
+  const goToPhone = (priceKey: CheckoutPriceKey, selectedStyleIds: number[]) => {
+    const quote = getCheckoutQuote(priceKey, selectedStyleIds);
+    setPixValue(quote.amount);
+    setPixLabel(quote.label);
+    setCheckoutPriceKey(priceKey);
+    setCheckoutStyleIds(quote.selectedStyleIds);
     setShowPhoneModal(true);
   };
 
   const handleResultsContinue = () => {
     if (resultsSelected.length === 4) {
-      goToPhone(43.60, "4 imagens");
+      goToPhone("quad", resultsSelected);
     } else {
       setShowUpsell(true);
     }
@@ -93,7 +106,8 @@ function AppFlow() {
   const handlePhoneConfirm = async () => {
     setShowPhoneModal(false);
     setPixCreating(true);
-    setPixPaymentId(null);
+    setPixOrderId(null);
+    setPixStatusToken(null);
     setPixRealCode(null);
     setPixQrBase64(null);
     setPixError(null);
@@ -104,10 +118,9 @@ function AppFlow() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: pixValue,
-          label: pixLabel,
+          priceKey: checkoutPriceKey,
           phoneNumber,
-          styles: selectedStyles,
+          selectedStyleIds: checkoutStyleIds,
         }),
       });
 
@@ -116,12 +129,15 @@ function AppFlow() {
         throw new Error(err.error ?? 'Erro ao criar cobrança');
       }
 
-      const { paymentId, pixCode, qrBase64 } = await res.json() as {
+      const { orderId, paymentId, statusToken, pixCode, qrBase64 } = await res.json() as {
+        orderId: string;
         paymentId: string;
+        statusToken: string;
         pixCode: string | null;
         qrBase64: string | null;
       };
-      setPixPaymentId(paymentId);
+      setPixOrderId(orderId);
+      setPixStatusToken(statusToken);
       setPixRealCode(pixCode);
       setPixQrBase64(qrBase64);
     } catch (err: unknown) {
@@ -151,7 +167,8 @@ function AppFlow() {
               label={pixLabel}
               pixCode={pixRealCode}
               qrBase64={pixQrBase64}
-              paymentId={pixPaymentId}
+              orderId={pixOrderId}
+              statusToken={pixStatusToken}
               phoneNumber={phoneNumber}
               isCreating={pixCreating}
               error={pixError}
@@ -167,8 +184,8 @@ function AppFlow() {
       {showUpsell && (
         <UpsellModal
           selectedIds={resultsSelected}
-          onAccept={(v, l) => { setShowUpsell(false); goToPhone(v, l); }}
-          onDecline={(v, l) => { setShowUpsell(false); goToPhone(v, l); }}
+          onAccept={(priceKey, selectedStyleIds) => { setShowUpsell(false); goToPhone(priceKey, selectedStyleIds); }}
+          onDecline={(priceKey, selectedStyleIds) => { setShowUpsell(false); goToPhone(priceKey, selectedStyleIds); }}
           onClose={() => setShowUpsell(false)}
         />
       )}
@@ -461,7 +478,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
   };
 
   const hasSelection = selectedIds.length > 0;
-  const totalPrice = selectedIds.length * 10.90;
+  const totalPrice = getBaseTotalForCount(selectedIds.length);
 
   return (
     <div className="w-full max-w-[480px] px-5 py-4 flex flex-col gap-3 animate-in fade-in duration-300">
@@ -594,28 +611,32 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 // ── UPSELL MODAL ──────────────────────────────────────────────────────────────
 function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
   selectedIds: number[];
-  onAccept:  (value: number, label: string) => void;
-  onDecline: (value: number, label: string) => void;
+  onAccept:  (priceKey: CheckoutPriceKey, selectedStyleIds: number[]) => void;
+  onDecline: (priceKey: CheckoutPriceKey, selectedStyleIds: number[]) => void;
   onClose: () => void;
 }) {
   const count = selectedIds.length;
   const selectedStyles = STYLES.filter(s => selectedIds.includes(s.id));
+  const upsellPriceKey = getUpsellPriceKey(count);
+  const declinePriceKey = getCheckoutQuote(
+    count === 1 ? "single" : count === 2 ? "double" : "triple",
+    selectedIds,
+  ).priceKey;
 
   const popupData = (() => {
     const base = {
       title: "🔥 PROMOÇÃO RELÂMPAGO!",
       strikethrough: "R$ 43,60",
-      acceptLabel: "4 imagens",
-      declineValue: count * 10.90,
-      declineLabel: `${count} imagem(ns)`,
+      acceptPriceKey: upsellPriceKey,
+      declinePriceKey,
+      declineValue: getBaseTotalForCount(count),
       upsellText: "",
       offerPrice: 0,
       economy: 0,
-      acceptValue: 0,
     };
-    if (count === 1) return { ...base, upsellText: "Acrescente as outras 3 fotos com Jesus que você não selecionou por apenas", offerPrice: 22.60, economy: 21.00, acceptValue: 22.60 };
-    if (count === 2) return { ...base, upsellText: "Acrescente as outras 2 fotos com Jesus que você não selecionou por apenas", offerPrice: 29.60, economy: 14.00, acceptValue: 29.60 };
-    return { ...base, upsellText: "Acrescente a outra foto com Jesus que você não selecionou por apenas", offerPrice: 36.60, economy: 7.00, acceptValue: 36.60 };
+    if (count === 1) return { ...base, upsellText: "Acrescente as outras 3 fotos com Jesus que você não selecionou por apenas", offerPrice: 22.60, economy: 21.00 };
+    if (count === 2) return { ...base, upsellText: "Acrescente as outras 2 fotos com Jesus que você não selecionou por apenas", offerPrice: 29.60, economy: 14.00 };
+    return { ...base, upsellText: "Acrescente a outra foto com Jesus que você não selecionou por apenas", offerPrice: 36.60, economy: 7.00 };
   })();
 
   return (
@@ -659,10 +680,10 @@ function UpsellModal({ selectedIds, onAccept, onDecline, onClose }: {
           </div>
 
           <div className="flex flex-col gap-4 mt-2">
-            <button onClick={() => onAccept(popupData.acceptValue, popupData.acceptLabel)} className="btn-primary py-4 text-base font-extrabold">
+            <button onClick={() => onAccept(popupData.acceptPriceKey, selectedIds)} className="btn-primary py-4 text-base font-extrabold">
               Sim, quero todas! 💕
             </button>
-            <button onClick={() => onDecline(popupData.declineValue, popupData.declineLabel)} className="text-sm text-gray-400 underline font-bold">
+            <button onClick={() => onDecline(popupData.declinePriceKey, selectedIds)} className="text-sm text-gray-400 underline font-bold">
               Não, obrigado (continuar com R$ {popupData.declineValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
             </button>
           </div>
@@ -872,12 +893,13 @@ function TestimonialCarousel({ images }: { images: string[] }) {
 }
 
 // ── PIX SCREEN ────────────────────────────────────────────────────────────────
-function PixScreen({ value, label, pixCode, qrBase64, paymentId, phoneNumber, isCreating, error }: {
+function PixScreen({ value, label, pixCode, qrBase64, orderId, statusToken, phoneNumber, isCreating, error }: {
   value: number;
   label: string;
   pixCode: string | null;
   qrBase64: string | null;
-  paymentId: string | null;
+  orderId: string | null;
+  statusToken: string | null;
   phoneNumber: string;
   isCreating: boolean;
   error: string | null;
@@ -893,10 +915,13 @@ function PixScreen({ value, label, pixCode, qrBase64, paymentId, phoneNumber, is
   }, [isCreating, pixCode]);
 
   useEffect(() => {
-    if (!paymentId || paymentStatus !== 'pending') return;
+    if (!orderId || !statusToken || paymentStatus !== 'pending') return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/payment-status?id=${paymentId}`);
+        const query = new URLSearchParams({ id: orderId, token: statusToken });
+        const res = await fetch(`/api/payment-status?${query.toString()}`, {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json() as { status: string };
         if (data.status === 'approved') {
@@ -909,7 +934,7 @@ function PixScreen({ value, label, pixCode, qrBase64, paymentId, phoneNumber, is
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [paymentId, paymentStatus]);
+  }, [orderId, paymentStatus, statusToken]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

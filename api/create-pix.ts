@@ -1,66 +1,113 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import MercadoPagoConfig, { Payment } from 'mercadopago';
-import { createClient } from '@supabase/supabase-js';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import {
+  ClientInputError,
+  createMercadoPagoPaymentClient,
+  createSupabaseAdminClient,
+  getPublicAppBaseUrl,
+  getRequiredEnv,
+  parseCheckoutRequest,
+} from "./_lib/payment-flow.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { amount, label, phoneNumber, styles } = (req.body ?? {}) as {
-    amount?: number;
-    label?: string;
-    phoneNumber?: string;
-    styles?: number[];
-  };
-
-  if (!amount || !phoneNumber || !label) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  const accessToken = process.env.MP_ACCESS_TOKEN;
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!accessToken || !supabaseUrl || !supabaseKey) {
-    return res.status(500).json({ error: 'Server misconfiguration: missing env vars' });
-  }
+  if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const mp = new MercadoPagoConfig({ accessToken });
-    const payment = new Payment(mp);
+    const env = getRequiredEnv();
+    const { phoneNumber, priceKey, quote } = parseCheckoutRequest(req.body);
+    const supabase = createSupabaseAdminClient(env);
+    const payment = createMercadoPagoPaymentClient(env);
+    const orderId = crypto.randomUUID();
+    const statusToken = crypto.randomUUID().replace(/-/g, "");
 
-    const result = await payment.create({
-      body: {
-        transaction_amount: Number(amount),
-        description: `FotoJesus - ${label}`,
-        payment_method_id: 'pix',
-        payer: {
-          email: 'pagador@fotojesus.com.br',
-          first_name: 'Cliente',
+    const { data: order, error: insertError } = await supabase
+      .from("orders")
+      .insert({
+        id: orderId,
+        phone: phoneNumber,
+        amount: quote.amount,
+        label: quote.label,
+        price_key: priceKey,
+        selected_styles: quote.selectedStyleIds,
+        status_token: statusToken,
+        styles: quote.purchasedStyleIds,
+      })
+      .select("id, status_token")
+      .single();
+
+    if (insertError || !order) {
+      throw new Error(insertError?.message ?? "Failed to create order");
+    }
+
+    let result;
+
+    try {
+      result = await payment.create({
+        body: {
+          description: `FotoJesus - ${quote.label}`,
+          external_reference: order.id,
+          metadata: {
+            order_id: order.id,
+            price_key: priceKey,
+            purchased_styles: quote.purchasedStyleIds,
+            selected_styles: quote.selectedStyleIds,
+          },
+          notification_url: `${getPublicAppBaseUrl(req)}/api/webhook`,
+          payer: {
+            email: "pagador@fotojesus.com.br",
+            first_name: "Cliente",
+          },
+          payment_method_id: "pix",
+          transaction_amount: quote.amount,
         },
-      },
-      requestOptions: { idempotencyKey: crypto.randomUUID() },
-    });
+        requestOptions: { idempotencyKey: order.id },
+      });
+    } catch (paymentError) {
+      await supabase
+        .from("orders")
+        .update({ mp_status: "creation_failed" })
+        .eq("id", order.id);
+
+      throw paymentError;
+    }
 
     const pixCode = result.point_of_interaction?.transaction_data?.qr_code ?? null;
     const qrBase64 = result.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
+    if (!result.id) {
+      throw new Error("Mercado Pago did not return a payment id");
+    }
+
     const paymentId = String(result.id);
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from("orders")
+      .update({
+        mp_payment_id: paymentId,
+        mp_status: result.status ?? "pending",
+        paid_at: result.status === "approved" ? result.date_approved ?? new Date().toISOString() : null,
+        pix_code: pixCode,
+        pix_qr_base64: qrBase64,
+      })
+      .eq("id", order.id)
+      .select("id")
+      .single();
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    await supabase.from('orders').insert({
-      phone: phoneNumber,
-      amount: Number(amount),
-      label,
-      styles: styles ?? [],
-      mp_payment_id: paymentId,
-      mp_status: 'pending',
-      pix_code: pixCode,
-      pix_qr_base64: qrBase64,
+    if (updateError || !updatedOrder) {
+      console.error("[create-pix] Failed to persist PIX details", updateError);
+    }
+
+    return res.status(200).json({
+      orderId: order.id,
+      paymentId,
+      pixCode,
+      qrBase64,
+      statusToken: order.status_token,
     });
-
-    return res.status(200).json({ paymentId, pixCode, qrBase64 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal error';
-    console.error('[create-pix]', err);
+    const message = err instanceof Error ? err.message : "Internal error";
+    if (err instanceof ClientInputError) {
+      return res.status(400).json({ error: message });
+    }
+
+    console.error("[create-pix]", err);
     return res.status(500).json({ error: message });
   }
 }
