@@ -1,6 +1,209 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// ─────────────────────────── console administrativo ───────────────────────────
+
+type ConsoleEntry = { id: number; type: "cmd" | "ok" | "err" | "info" | "prompt"; text: string };
+type ConsoleStage = "idle" | "confirm" | "running";
+type ConsoleCtx = {
+  push: (type: ConsoleEntry["type"], text: string) => void;
+  setStage: React.Dispatch<React.SetStateAction<ConsoleStage>>;
+  setPending: React.Dispatch<React.SetStateAction<(() => Promise<void>) | null>>;
+  refresh: () => void;
+};
+
+type CommandDef = { description: string; run: (args: string[], ctx: ConsoleCtx) => Promise<void> };
+
+const COMMANDS: Record<string, CommandDef> = {
+  help: {
+    description: "Lista os comandos disponíveis",
+    run: async (_args, ctx) => {
+      ctx.push("info", "Comandos disponíveis:");
+      for (const [name, def] of Object.entries(COMMANDS)) {
+        ctx.push("info", `  /${name.padEnd(18)} — ${def.description}`);
+      }
+    },
+  },
+  "reset-data": {
+    description: "Apaga TODOS os dados (orders + order_events)",
+    run: async (_args, ctx) => {
+      ctx.push("info", "⚠️  ATENÇÃO: Esta ação é irreversível.");
+      ctx.push("prompt", 'Tem certeza que deseja apagar TODOS os dados?\nDigite CONFIRMAR para prosseguir.');
+      ctx.setStage("confirm");
+      ctx.setPending(() => async () => {
+        ctx.push("info", "Executando /reset-data...");
+        try {
+          const res = await fetch("/api/bmth/admin-cmd", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: "reset-data" }),
+          });
+          const data = await res.json() as { ok?: boolean; message?: string; error?: string };
+          if (!res.ok) throw new Error(data.error ?? "Erro desconhecido");
+          ctx.push("ok", `✓ ${data.message ?? "Dados apagados com sucesso."}`);
+          ctx.refresh();
+        } catch (err) {
+          ctx.push("err", `✗ ${err instanceof Error ? err.message : "Erro ao executar"}`);
+        }
+      });
+    },
+  },
+};
+
+function TerminalSvg() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" />
+    </svg>
+  );
+}
+
+function AdminConsole({ refresh }: { refresh: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [entries, setEntries] = useState<ConsoleEntry[]>([]);
+  const [input, setInput] = useState("");
+  const [stage, setStage] = useState<ConsoleStage>("idle");
+  const [pending, setPending] = useState<(() => Promise<void>) | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const idRef = useRef(0);
+  const initRef = useRef(false);
+
+  const push = useCallback((type: ConsoleEntry["type"], text: string) => {
+    setEntries((prev) => [...prev, { id: idRef.current++, type, text }]);
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [entries]);
+
+  useEffect(() => {
+    if (open) {
+      inputRef.current?.focus();
+      if (!initRef.current) {
+        initRef.current = true;
+        push("info", "Console BMTH v1.0 — Digite /help para listar comandos.");
+      }
+    }
+  }, [open, push]);
+
+  const ctx: ConsoleCtx = { push, refresh, setPending, setStage };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = input.trim();
+    if (!val || stage === "running") return;
+    setInput("");
+
+    if (stage === "confirm") {
+      push("cmd", val);
+      if (val === "CONFIRMAR") {
+        setStage("running");
+        const fn = pending;
+        setPending(null);
+        if (fn) await fn();
+        setStage("idle");
+      } else {
+        push("info", "Operação cancelada.");
+        setPending(null);
+        setStage("idle");
+      }
+      return;
+    }
+
+    push("cmd", `> ${val}`);
+
+    if (!val.startsWith("/")) {
+      push("err", "Comandos devem começar com /. Digite /help.");
+      return;
+    }
+
+    const [rawName, ...args] = val.slice(1).split(/\s+/);
+    const name = rawName ?? "";
+    const cmd = COMMANDS[name];
+    if (!cmd) {
+      push("err", `Comando não encontrado: /${name}. Digite /help.`);
+      return;
+    }
+
+    await cmd.run(args, ctx);
+  };
+
+  const ENTRY_CLS: Record<ConsoleEntry["type"], string> = {
+    cmd:    "text-zinc-300",
+    ok:     "text-emerald-400",
+    err:    "text-rose-400",
+    info:   "text-zinc-500",
+    prompt: "text-amber-400",
+  };
+
+  return (
+    <>
+      {/* FAB */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Console administrativo"
+        aria-label="Abrir console"
+        className={`fixed bottom-5 right-5 z-50 flex h-10 w-10 items-center justify-center rounded-full border shadow-lg transition-colors ${
+          open
+            ? "border-zinc-500 bg-zinc-800 text-zinc-200"
+            : "border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"
+        }`}
+      >
+        <TerminalSvg />
+      </button>
+
+      {/* Modal */}
+      {open && (
+        <div className="fixed bottom-[72px] right-5 z-50 flex w-[min(440px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl">
+          {/* Barra de título */}
+          <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <TerminalSvg />
+              <span className="font-mono text-xs font-semibold text-zinc-400">bmth-console</span>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="text-zinc-600 hover:text-zinc-300 transition-colors"
+              aria-label="Fechar console"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Log */}
+          <div className="h-60 space-y-0.5 overflow-y-auto p-3">
+            {entries.map((e) => (
+              <p key={e.id} className={`font-mono text-xs leading-relaxed whitespace-pre-wrap break-all ${ENTRY_CLS[e.type]}`}>
+                {e.text}
+              </p>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <form onSubmit={(e) => void handleSubmit(e)} className="flex items-center gap-2 border-t border-zinc-800 px-3 py-2">
+            <span className="font-mono text-xs text-zinc-600 select-none">
+              {stage === "confirm" ? "confirm>" : stage === "running" ? "·····" : "$"}
+            </span>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={stage === "running"}
+              placeholder={stage === "confirm" ? "CONFIRMAR ou qualquer outra coisa para cancelar" : "/comando"}
+              className="flex-1 bg-transparent font-mono text-xs text-zinc-200 outline-none placeholder:text-zinc-700 disabled:opacity-40"
+            />
+          </form>
+        </div>
+      )}
+    </>
+  );
+}
+
 export const Route = createFileRoute("/BMTH/")({
   component: BmthPage,
 });
@@ -210,6 +413,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       setLoadingOrders(false);
     }
   }, [filter, page, search]);
+
+  const refresh = useCallback(() => {
+    void loadDashboard();
+    void loadOrders();
+  }, [loadDashboard, loadOrders]);
 
   useEffect(() => {
     void loadDashboard();
@@ -423,6 +631,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           </aside>
         </div>
       </main>
+      <AdminConsole refresh={refresh} />
     </div>
   );
 }

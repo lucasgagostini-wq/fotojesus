@@ -262,3 +262,49 @@ export async function handleMarkDelivered(req: VercelRequest, res: VercelRespons
     return res.status(500).json({ error: message });
   }
 }
+
+// ─────────────────────────── comando administrativo ───────────────────────────
+
+export async function handleAdminCmd(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") return res.status(405).end();
+  const session = requireSession(req);
+  if (!session) return res.status(401).json({ error: "Não autenticado" });
+
+  const body = (req.body ?? {}) as { command?: unknown };
+  const command = typeof body.command === "string" ? body.command.trim() : "";
+
+  switch (command) {
+    case "reset-data": {
+      try {
+        const supabase = createAdminSupabase();
+        // UUID zero nunca existe nos dados reais — funciona como "DELETE FROM" sem filtro direto
+        const ZERO = "00000000-0000-0000-0000-000000000000";
+
+        const { error: evErr } = await supabase
+          .from("order_events")
+          .delete()
+          .neq("id", ZERO);
+        if (evErr) throw new Error(`order_events: ${evErr.message}`);
+
+        const { error: ordErr, count } = await supabase
+          .from("orders")
+          .delete({ count: "exact" })
+          .neq("id", ZERO);
+        if (ordErr) throw new Error(`orders: ${ordErr.message}`);
+
+        console.log(`[bmth/admin-cmd/reset-data] ${count ?? "?"} pedidos removidos por ${session.u}`);
+        return res.status(200).json({
+          ok: true,
+          message: `Reset concluído: ${count ?? "?"} pedido(s) e todos os eventos removidos.`,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Internal error";
+        console.error("[bmth/admin-cmd/reset-data]", err);
+        return res.status(500).json({ error: message });
+      }
+    }
+
+    default:
+      return res.status(400).json({ error: `Comando desconhecido: "${command}"` });
+  }
+}

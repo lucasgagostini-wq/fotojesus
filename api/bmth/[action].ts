@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
+  handleAdminCmd,
   handleDashboard,
   handleLogin,
   handleLogout,
@@ -33,6 +34,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleOrders(req, res);
     case "session":
       return handleSession(req, res);
+    case "admin-cmd":
+      return handleAdminCmd(req, res);
     default:
       return res.status(404).json({ error: "Rota administrativa desconhecida" });
   }
