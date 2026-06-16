@@ -648,17 +648,17 @@ function UploadScreen({ onFileSelect }: { onFileSelect: (file: File) => void }) 
         Uma <strong>selfie do seu rosto</strong>, bem iluminada.
       </p>
 
-      <div className="flex gap-2 items-end">
-        <div className="flex flex-col gap-2 flex-1">
+      <div className="flex gap-3 items-center justify-center px-6">
+        <div className="flex flex-col gap-2 flex-1 max-w-[42%]">
           <div className="rounded-2xl overflow-hidden border-2 border-gray-200">
             <img src={uploadErradoImg} alt="Exemplo errado" className="w-full object-contain" />
           </div>
           <span className="text-sm text-gray-600 font-bold text-center uppercase tracking-tight">Tire assim</span>
         </div>
-        <div className="flex flex-col items-center justify-center shrink-0 pb-6">
-          <ChevronRight size={22} className="text-brand-gold" strokeWidth={2.5} />
+        <div className="shrink-0">
+          <span className="text-2xl text-brand-gold font-bold">→</span>
         </div>
-        <div className="flex flex-col gap-2 flex-1">
+        <div className="flex flex-col gap-2 flex-1 max-w-[42%]">
           <div className="rounded-2xl overflow-hidden border-2 border-brand-gold">
             <img src={uploadIdealImg} alt="Foto ideal" className="w-full object-contain" />
           </div>
