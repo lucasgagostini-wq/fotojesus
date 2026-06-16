@@ -1173,11 +1173,11 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
   const isValid = digits.length === 11;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-[480px] rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-[420px] rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
 
         {/* Cabeçalho verde de vinculacao */}
-        <div className="relative bg-[#25D366] px-5 py-5 rounded-t-3xl text-center">
+        <div className="relative bg-[#25D366] px-5 py-5 text-center">
           <button
             onClick={onClose}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
