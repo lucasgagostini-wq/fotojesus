@@ -896,7 +896,7 @@ function PixScreenV2({ value, label, pixCode, phoneNumber }: {
         <div className="bg-white/70 rounded-2xl p-4 flex items-start gap-3 border border-gray-100">
           <Check className="text-green-500 mt-0.5 shrink-0" size={16} />
           <p className="text-xs font-bold text-gray-600 leading-snug">
-            A cobrança aparecerá no app do seu banco como "Felipe Hans"
+            A cobrança aparecerá no app do seu banco como "Lucas Gonçalves Agostini"
           </p>
         </div>
 

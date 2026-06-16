@@ -1532,7 +1532,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
         <div className="bg-white rounded-2xl p-4 flex items-start gap-3 shadow-sm border border-gray-50">
           <Check className="text-green-500 mt-1 shrink-0" size={18} />
           <p className="text-xs font-bold text-gray-500 leading-snug">
-            A cobrança aparecerá no app do seu banco como "Felipe Hans"
+            A cobrança aparecerá no app do seu banco como "Lucas Gonçalves Agostini"
           </p>
         </div>
 
