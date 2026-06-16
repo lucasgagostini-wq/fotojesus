@@ -12,9 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as V2RouteImport } from './routes/v2'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as BMTHIndexRouteImport } from './routes/BMTH/index'
-import { Route as AdminOrderIdRouteImport } from './routes/admin/$orderId'
 import { Route as BMTHOrderIdRouteImport } from './routes/BMTH/$orderId'
 
 const V2Route = V2RouteImport.update({
@@ -32,19 +30,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BMTHIndexRoute = BMTHIndexRouteImport.update({
   id: '/BMTH/',
   path: '/BMTH/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminOrderIdRoute = AdminOrderIdRouteImport.update({
-  id: '/admin/$orderId',
-  path: '/admin/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BMTHOrderIdRoute = BMTHOrderIdRouteImport.update({
@@ -58,18 +46,14 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/v2': typeof V2Route
   '/BMTH/$orderId': typeof BMTHOrderIdRoute
-  '/admin/$orderId': typeof AdminOrderIdRoute
   '/BMTH/': typeof BMTHIndexRoute
-  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/v2': typeof V2Route
   '/BMTH/$orderId': typeof BMTHOrderIdRoute
-  '/admin/$orderId': typeof AdminOrderIdRoute
   '/BMTH': typeof BMTHIndexRoute
-  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,38 +61,14 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/v2': typeof V2Route
   '/BMTH/$orderId': typeof BMTHOrderIdRoute
-  '/admin/$orderId': typeof AdminOrderIdRoute
   '/BMTH/': typeof BMTHIndexRoute
-  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/sitemap.xml'
-    | '/v2'
-    | '/BMTH/$orderId'
-    | '/admin/$orderId'
-    | '/BMTH/'
-    | '/admin/'
+  fullPaths: '/' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/sitemap.xml'
-    | '/v2'
-    | '/BMTH/$orderId'
-    | '/admin/$orderId'
-    | '/BMTH'
-    | '/admin'
-  id:
-    | '__root__'
-    | '/'
-    | '/sitemap.xml'
-    | '/v2'
-    | '/BMTH/$orderId'
-    | '/admin/$orderId'
-    | '/BMTH/'
-    | '/admin/'
+  to: '/' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH'
+  id: '__root__' | '/' | '/sitemap.xml' | '/v2' | '/BMTH/$orderId' | '/BMTH/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,9 +76,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   V2Route: typeof V2Route
   BMTHOrderIdRoute: typeof BMTHOrderIdRoute
-  AdminOrderIdRoute: typeof AdminOrderIdRoute
   BMTHIndexRoute: typeof BMTHIndexRoute
-  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -144,25 +102,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/BMTH/': {
       id: '/BMTH/'
       path: '/BMTH'
       fullPath: '/BMTH/'
       preLoaderRoute: typeof BMTHIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/$orderId': {
-      id: '/admin/$orderId'
-      path: '/admin/$orderId'
-      fullPath: '/admin/$orderId'
-      preLoaderRoute: typeof AdminOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/BMTH/$orderId': {
@@ -180,9 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   V2Route: V2Route,
   BMTHOrderIdRoute: BMTHOrderIdRoute,
-  AdminOrderIdRoute: AdminOrderIdRoute,
   BMTHIndexRoute: BMTHIndexRoute,
-  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -58,7 +58,11 @@ consultas passam pelas APIs protegidas.
 
 ---
 
-## APIs criadas (`api/bmth/`)
+## APIs (`api/bmth/`)
+
+Todos os endpoints são servidos por **uma única função serverless** —
+`api/bmth/[action].ts` (rota dinâmica) — para respeitar o limite de 12 funções
+do plano Hobby da Vercel. A Vercel mapeia `/api/bmth/<action>` → `[action].ts`.
 
 | Rota | Método | Protegida | Função |
 |---|---|---|---|
@@ -70,8 +74,9 @@ consultas passam pelas APIs protegidas.
 | `/api/bmth/order` | GET | ✅ | Detalhe + signed URL da foto (4h) |
 | `/api/bmth/mark-delivered` | POST | ✅ | `order_status=delivered` + evento |
 
-Bibliotecas compartilhadas: `api/_lib/admin-auth.ts` (sessão/cookie) e
-`api/_lib/admin-db.ts` (cliente Supabase admin + helpers de data/status).
+Bibliotecas (em `_lib`, não contam como função serverless):
+`admin-auth.ts` (sessão/cookie), `admin-db.ts` (Supabase admin + helpers),
+`bmth-handlers.ts` (lógica de cada endpoint, despachada pelo `[action].ts`).
 
 ## Rotas de frontend criadas
 
@@ -97,8 +102,6 @@ Cliente paga PIX → webhook aprova → pedido aparece em /BMTH (filtro "Pagos")
 
 ## Pendências futuras
 
-- Consolidar/remover o painel antigo `/admin` + `/api/admin/*` (auth por Bearer), agora
-  substituído pelo `/BMTH` com cookie httpOnly.
 - Busca por order_id parcial (hoje exige UUID completo; telefone aceita parcial).
 - Rate limiting no `POST /api/bmth/login` (mitigar brute force).
 - Realtime/auto-refresh do dashboard (hoje recarrega ao trocar filtro/página).
