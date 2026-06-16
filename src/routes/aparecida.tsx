@@ -574,7 +574,8 @@ function LandingScreen({ onNext, onRecover }: { onNext: () => void; onRecover: (
     <div className="content-wrapper animate-in fade-in duration-300 text-center">
       <header className="mb-2">
         <h1 className="text-[28px] font-black text-foreground leading-tight">
-          🙏 Veja como seria um momento seu ao lado de{" "}
+          🙏 Veja como seria um momento seu ao lado de
+          <br />
           <span
             style={{
               background: "linear-gradient(135deg, #F5A623 0%, #E8960A 55%, #F5A623 100%)",
@@ -605,9 +606,6 @@ function LandingScreen({ onNext, onRecover }: { onNext: () => void; onRecover: (
       <div className="mt-2">
         <button onClick={onNext} className="btn-primary btn-shimmer">
           CRIAR MINHA IMAGEM
-        </button>
-        <button onClick={onRecover} className="mt-3 text-sm font-bold text-gray-400 underline">
-          Recuperar pedido existente
         </button>
       </div>
     </div>

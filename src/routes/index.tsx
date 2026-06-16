@@ -611,9 +611,6 @@ function LandingScreen({ onNext, onRecover }: { onNext: () => void; onRecover: (
         <button onClick={onNext} className="btn-primary btn-shimmer">
           CRIAR MINHA IMAGEM
         </button>
-        <button onClick={onRecover} className="mt-3 text-sm font-bold text-gray-400 underline">
-          Recuperar pedido existente
-        </button>
       </div>
     </div>
   );
