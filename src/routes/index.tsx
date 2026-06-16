@@ -899,10 +899,10 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 
               {/* Badge preço — canto superior esquerdo */}
               <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-start gap-0 px-1.5 pt-1.5">
-                <span className="bg-black/70 text-white text-[7px] font-extrabold px-1.5 py-[2px] rounded-sm leading-tight backdrop-blur-[1px]">
+                <span className="bg-black/70 text-white text-[10px] font-extrabold px-1.5 py-[2px] rounded-sm leading-tight backdrop-blur-[1px]">
                   Apenas R$ 10,90
                 </span>
-                <span className="bg-black/50 text-white/90 text-[5.5px] font-semibold px-1.5 py-[1px] rounded-sm leading-tight mt-[1px] backdrop-blur-[1px]">
+                <span className="bg-black/50 text-white text-[8px] font-semibold px-1.5 py-[1px] rounded-sm leading-tight mt-[1px] backdrop-blur-[1px]">
                   Alta qualidade para baixar
                 </span>
               </div>
@@ -910,7 +910,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               {/* Botão TOQUE — centro, só quando não selecionado */}
               {!isSelected && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="bg-brand-gold text-white text-[9px] font-black px-3 py-1 rounded-full shadow-md tracking-wide">
+                  <div className="bg-brand-gold text-white text-[12px] font-black px-3.5 py-1.5 rounded-full shadow-md tracking-wide">
                     💛 TOQUE
                   </div>
                 </div>
@@ -920,12 +920,12 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               <div className={`absolute bottom-0 inset-x-0 z-10 transition-colors duration-200 ${
                 isSelected ? "bg-[#1e293b]/95" : "bg-[#4da8da]/95"
               }`}>
-                <p className={`text-[7.5px] font-black text-center uppercase tracking-wider py-1 ${
+                <p className={`text-[12px] font-black text-center uppercase tracking-wide py-1 ${
                   isSelected ? "text-brand-gold" : "text-white"
                 }`}>
                   {isSelected ? "SUA ESCOLHA" : "💛 LEVE TAMBÉM"}
                 </p>
-                <p className="text-[7px] text-white/80 font-semibold text-center pb-1 -mt-0.5 leading-none px-1">
+                <p className="text-[11px] text-white font-semibold text-center pb-1 -mt-0.5 leading-tight px-1">
                   {style.description}
                 </p>
               </div>
@@ -936,25 +936,28 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
 
       {hasEverSelected && (
         <div className="animate-in fade-in duration-500">
-          <div className="max-w-sm mx-auto flex flex-col gap-1 mt-2">
+          <div className="max-w-sm mx-auto flex flex-col gap-1.5 mt-2">
             <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[11px] leading-none">⏳</span>
-              <p className="text-[11px] text-gray-400 font-medium leading-tight">Sua imagem fica disponível por tempo limitado</p>
+              <span className="text-[14px] leading-none">⏳</span>
+              <p className="text-[14px] text-gray-600 font-semibold leading-tight">Sua imagem fica disponível por tempo limitado</p>
             </div>
             <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[11px] leading-none">✝️</span>
-              <p className="text-[11px] text-gray-700 font-medium leading-tight">Imagem pronta para você guardar para sempre</p>
+              <span className="text-[14px] leading-none">✝️</span>
+              <p className="text-[14px] text-gray-800 font-semibold leading-tight">Imagem pronta para você guardar para sempre</p>
             </div>
           </div>
 
           <div className="mt-3">
             {hasSelection && (
-              <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-center shadow-sm mb-3">
-                <p className="text-[12px] font-bold text-gray-600 leading-tight">
+              <div className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-center shadow-sm mb-3">
+                <p className="text-[14px] font-bold text-gray-700 leading-tight">
                   {selectedIds.length} {selectedIds.length === 1 ? "imagem selecionada" : "imagens selecionadas"}
                 </p>
-                <p className="text-[18px] font-black text-brand-gold leading-tight mt-0.5">
-                  Total para liberar: R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <p className="text-[15px] font-bold text-gray-600 leading-tight mt-1">
+                  Total para liberar:
+                </p>
+                <p className="text-[26px] font-black text-brand-gold leading-none mt-0.5">
+                  R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             )}
@@ -965,10 +968,10 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               disabled={!hasSelection}
             >
               <span className="font-extrabold text-sm leading-tight">LIBERAR MINHA IMAGEM AGORA</span>
-              <span className="text-[10px] font-medium leading-tight opacity-90">Pagamento rápido e seguro via Pix</span>
+              <span className="text-[12px] font-medium leading-tight opacity-90">Pagamento rápido e seguro via Pix</span>
             </button>
 
-            <p className="text-center text-[11px] text-gray-400 font-medium mt-1.5">Acesso imediato após o pagamento</p>
+            <p className="text-center text-[13px] text-gray-500 font-medium mt-1.5">Acesso imediato após o pagamento</p>
           </div>
 
           <div className="mt-4 mb-20">
@@ -1184,30 +1187,30 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
           >
             <X size={22} />
           </button>
-          <p className="text-2xl mb-1">💬</p>
-          <h3 className="text-white font-black text-base uppercase tracking-tight leading-tight">
+          <p className="text-3xl mb-1">💬</p>
+          <h3 className="text-white font-black text-xl uppercase tracking-tight leading-tight">
             VINCULE SEU PEDIDO
           </h3>
         </div>
 
         <div className="px-5 pt-4 pb-6 flex flex-col gap-3">
           <div className="text-center">
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-700 leading-relaxed">
               Seu numero sera salvo junto do pedido para facilitar a entrega e a recuperacao
               das imagens depois do pagamento.
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-sm text-gray-500 mt-1.5">
               Isso tambem ajuda se voce trocar de aparelho ou voltar mais tarde.
             </p>
           </div>
 
           {/* Input com prefixo +55 fixo */}
           <div className={`flex items-stretch rounded-xl border-2 overflow-hidden transition-colors ${
-            isValid ? "border-[#25D366]" : "border-gray-200"
+            isValid ? "border-[#25D366]" : "border-gray-300"
           }`}>
-            <div className="flex items-center gap-1.5 px-3 bg-gray-50 border-r border-gray-200 shrink-0">
-              <span className="text-base">🇧🇷</span>
-              <span className="text-sm font-black text-gray-700">+55</span>
+            <div className="flex items-center gap-1.5 px-3.5 bg-gray-50 border-r border-gray-200 shrink-0">
+              <span className="text-lg">🇧🇷</span>
+              <span className="text-base font-black text-gray-700">+55</span>
             </div>
             <input
               type="tel"
@@ -1215,7 +1218,7 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
               value={phone}
               onChange={handleChange}
               placeholder="(00) 00000-0000"
-              className="flex-1 px-3 py-3 text-base font-bold text-foreground placeholder:text-gray-300 outline-none bg-white"
+              className="flex-1 px-3 py-3.5 text-lg font-bold text-foreground placeholder:text-gray-400 outline-none bg-white"
             />
           </div>
 
@@ -1230,8 +1233,8 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
           </button>
 
           <div className="flex items-center justify-center gap-1.5">
-            <ShieldCheck size={13} className="text-gray-400 shrink-0" />
-            <p className="text-[11px] text-gray-400">
+            <ShieldCheck size={15} className="text-gray-500 shrink-0" />
+            <p className="text-[13px] text-gray-500">
               Seus dados são usados apenas para entrega das imagens.
             </p>
           </div>
@@ -1464,7 +1467,7 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
   return (
     <div className="content-wrapper animate-in fade-in duration-300">
       <div className="flex flex-col items-center mb-2">
-        <img src={mpLogoImg} alt="Mercado Pago" className="h-10 object-contain mb-4" />
+        <img src={mpLogoImg} alt="Mercado Pago" className="h-[72px] max-w-full object-contain mb-4" />
         <h1 className="text-xl font-black text-foreground tracking-tight">PAGAMENTO VIA PIX</h1>
       </div>
 
