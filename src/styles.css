@@ -144,10 +144,11 @@
    ============================================ */
 
 .theme-v2 {
-  --color-brand-gold: #C8860A;
-  --color-brand-blue-light: #FFF5E0;
-  --foreground: oklch(0.18 0.05 40);
+  --color-brand-gold: #F5A623;
+  --color-brand-blue-light: #0B0704;
+  --foreground: oklch(0.98 0.01 95);
   font-family: 'Lato', 'Nunito', sans-serif;
+  color: #F8F4ED;
 }
 
 /* Headings usam Playfair Display */
@@ -159,28 +160,31 @@
 
 /* Background quente substitui o azul frio */
 .theme-v2 .app-container {
-  background: linear-gradient(160deg, #FFF8EE 0%, #FFF1D4 55%, #FEE8C0 100%) !important;
+  background:
+    radial-gradient(circle at top, rgba(245, 166, 35, 0.16), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(255, 214, 102, 0.08), transparent 18%),
+    linear-gradient(180deg, #090604 0%, #120B07 48%, #0A0705 100%) !important;
 }
 
 /* Botão primário com gradiente e sombra quente */
 .theme-v2 .btn-primary {
-  background: linear-gradient(135deg, #F5A623 0%, #C8860A 100%) !important;
-  box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 1px 0 rgba(255,255,255,0.14) inset !important;
+  background: linear-gradient(135deg, #F6BF58 0%, #F5A623 42%, #B86E09 100%) !important;
+  box-shadow: 0 10px 30px rgba(245, 166, 35, 0.28), 0 1px 0 rgba(255,255,255,0.18) inset !important;
   letter-spacing: 0.07em;
 }
 
 /* Botão secundário com borda dourada quente */
 .theme-v2 .btn-secondary {
-  background: #FFFDF8 !important;
-  border: 2px solid #E0C88A !important;
-  color: #2C1A0E !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 2px solid rgba(245, 166, 35, 0.22) !important;
+  color: #F8F4ED !important;
 }
 
 /* Cards com fundo marfim e borda dourada */
 .theme-v2 .card-style {
-  background: #FFFDF8 !important;
-  border: 1.5px solid #EDD89A !important;
-  box-shadow: 0 2px 18px rgba(180, 120, 20, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1.5px solid rgba(245, 166, 35, 0.18) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28) !important;
 }
 
 /* Pulse com tom quente */
@@ -189,14 +193,14 @@
 }
 
 @keyframes pulse-shadow-v2 {
-  0%   { box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 0 0 0 rgba(200, 134, 10, 0.45); }
-  70%  { box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 0 0 14px rgba(200, 134, 10, 0); }
-  100% { box-shadow: 0 4px 22px rgba(200, 134, 10, 0.38), 0 0 0 0 rgba(200, 134, 10, 0); }
+  0%   { box-shadow: 0 10px 30px rgba(245, 166, 35, 0.28), 0 0 0 0 rgba(245, 166, 35, 0.38); }
+  70%  { box-shadow: 0 10px 30px rgba(245, 166, 35, 0.28), 0 0 0 14px rgba(245, 166, 35, 0); }
+  100% { box-shadow: 0 10px 30px rgba(245, 166, 35, 0.28), 0 0 0 0 rgba(245, 166, 35, 0); }
 }
 
 /* Shimmer na barra de progresso do loading */
 .theme-v2 .progress-bar-v2 {
-  background: linear-gradient(90deg, #C8860A 0%, #F5A623 50%, #C8860A 100%);
+  background: linear-gradient(90deg, #8B5308 0%, #F5A623 45%, #FFE09A 52%, #B86E09 100%);
   background-size: 200% 100%;
   animation: shimmer-gold 1.8s linear infinite;
 }

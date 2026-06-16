@@ -164,7 +164,7 @@ function persistOrderSession(summary: OrderSummary): StoredOrderSession {
 // ── AppFlow ───────────────────────────────────────────────────────────────────
 function AppFlow() {
   const [currentStep, setCurrentStep]           = useState<Step>('landing');
-  const [selectedStyles, setSelectedStyles]     = useState<number[]>([]);
+  const [selectedStyles, setSelectedStyles]     = useState<number[]>([STYLES[0].id]);
   const [resultsSelected, setResultsSelected]   = useState<number[]>([]);
   const [showUpsell, setShowUpsell]             = useState(false);
   const [pixValue, setPixValue]                 = useState<number>(10.90);
@@ -729,10 +729,23 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry, isUploading, error }:
           <div className="flex flex-col gap-3 pb-2">
             <button
               onClick={onConfirm}
-              className="btn-primary flex items-center justify-center gap-2"
+              className={`flex items-center justify-center gap-2 rounded-[12px] py-[18px] font-extrabold uppercase shadow-md transition-all ${
+                isUploading
+                  ? "w-full cursor-not-allowed bg-gray-300 text-white"
+                  : "btn-primary"
+              }`}
               disabled={isUploading}
             >
-              {isUploading ? "SALVANDO FOTO..." : "SIM, AVANÇAR"} <ChevronRight size={18} strokeWidth={3} />
+              {isUploading ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-white/80 border-t-transparent animate-spin" />
+                  SALVANDO FOTO...
+                </>
+              ) : (
+                <>
+                  SIM, AVANÇAR <ChevronRight size={18} strokeWidth={3} />
+                </>
+              )}
             </button>
             <button onClick={onRetry} disabled={isUploading} className="w-full bg-gray-100 text-gray-600 font-bold text-center py-3 rounded-xl active:scale-[0.98] transition-all disabled:opacity-60">
               Escolher outra foto
@@ -748,8 +761,20 @@ function PhotoConfirmModal({ photoUrl, onConfirm, onRetry, isUploading, error }:
 function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
   selectedIds: number[]; setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>; onNext: () => void;
 }) {
+  useEffect(() => {
+    if (selectedIds.length === 0) {
+      setSelectedIds([STYLES[0].id]);
+    }
+  }, [selectedIds, setSelectedIds]);
+
   const toggleSelection = (id: number) => {
-    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.length === 1 ? prev : prev.filter((item) => item !== id);
+      }
+
+      return [...prev, id];
+    });
   };
 
   return (
@@ -790,8 +815,7 @@ function StylesScreen({ selectedIds, setSelectedIds, onNext }: {
       </div>
 
       <button
-        className={`btn-primary mt-8 flex items-center justify-center gap-2 transition-opacity ${selectedIds.length === 0 ? "opacity-50" : "opacity-100"}`}
-        disabled={selectedIds.length === 0}
+        className="btn-primary mt-8 flex items-center justify-center gap-2"
         onClick={onNext}
       >
         AVANÇAR <ChevronRight size={18} strokeWidth={3} />
@@ -859,8 +883,10 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
       </header>
 
       {/* Lar Aconchego Banner */}
-      <div className="rounded-2xl overflow-hidden border-2 border-[#4da8da] shadow-sm">
-        <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-40 object-cover object-center" />
+      <div className="rounded-2xl overflow-hidden border-2 border-[#4da8da] shadow-sm bg-white">
+        <div className="aspect-[16/10] bg-white">
+          <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full h-full object-contain object-center" />
+        </div>
         <div className="bg-white p-3 text-center">
           <p className="text-brand-gold font-bold text-sm leading-snug">
             💛 100% dos valores arrecadados serão doados para o{" "}
