@@ -16,15 +16,10 @@ import {
 import { pixelTrack } from "../lib/pixel";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
-import hugImg               from "../assets/jesus-moments/hug.png";
-import smilingImg           from "../assets/jesus-moments/smiling.png";
-import holdingHandsImg      from "../assets/jesus-moments/holding-hands.png";
-import fieldImg             from "../assets/jesus-moments/field.png";
-
-import hugPixeladoImg          from "../assets/jesus-moments/hug-pixelado.jpeg";
-import smilingPixeladoImg      from "../assets/jesus-moments/smiling-pielado.jpeg";
-import holdingHandsPixeladoImg from "../assets/jesus-moments/holding-hands-pixelado.jpeg";
-import fieldPixeladoImg        from "../assets/jesus-moments/field-pixelado.jpeg";
+import aparecidaAbracImg      from "../assets/aparecida-moments/aparecida-abraco.png";
+import aparecidaSantuarioImg  from "../assets/aparecida-moments/aparecida-santuario.png";
+import aparecidaMaosDadasImg  from "../assets/aparecida-moments/aparecida-maos-dadas.png";
+import aparecidaBencaoImg     from "../assets/aparecida-moments/aparecida-bencao.png";
 
 import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
 import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
@@ -46,10 +41,10 @@ export const Route = createFileRoute("/aparecida")({
 type Step = 'landing' | 'upload' | 'styles' | 'loading' | 'results' | 'pix';
 
 const STYLES = [
-  { id: 1, label: "Nossa Senhora te abraçando",      img: hugImg,          imgPixelado: hugPixeladoImg,          description: "Nossa Senhora te abraçando" },
-  { id: 2, label: "Nossa Senhora ao seu lado",        img: smilingImg,      imgPixelado: smilingPixeladoImg,      description: "Nossa Senhora ao seu lado" },
-  { id: 3, label: "Nossa Senhora segurando sua mão",  img: holdingHandsImg, imgPixelado: holdingHandsPixeladoImg, description: "Nossa Senhora segurando sua mão" },
-  { id: 4, label: "Um momento de graça com Ela",      img: fieldImg,        imgPixelado: fieldPixeladoImg,        description: "Um momento de graça com Ela" },
+  { id: 1, label: "Nossa Senhora te abraçando",      img: aparecidaAbracImg,     imgPixelado: aparecidaAbracImg,     description: "Nossa Senhora te abraçando" },
+  { id: 2, label: "Nossa Senhora ao seu lado",        img: aparecidaSantuarioImg, imgPixelado: aparecidaSantuarioImg, description: "Nossa Senhora ao seu lado" },
+  { id: 3, label: "Nossa Senhora segurando sua mão",  img: aparecidaMaosDadasImg, imgPixelado: aparecidaMaosDadasImg, description: "Nossa Senhora segurando sua mão" },
+  { id: 4, label: "Um momento de graça com Ela",      img: aparecidaBencaoImg,    imgPixelado: aparecidaBencaoImg,    description: "Um momento de graça com Ela" },
 ];
 
 const DEPOIMENTOS = [dep1, dep2, dep3, dep4, dep5];
