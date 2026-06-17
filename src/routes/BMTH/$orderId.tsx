@@ -10,6 +10,7 @@ export const Route = createFileRoute("/BMTH/$orderId")({
 type OrderDetail = {
   id: string;
   phone: null | string;
+  email: null | string;
   amount: null | number;
   label: null | string;
   price_key: null | string;
@@ -196,6 +197,7 @@ function OrderDetailPage() {
 
               <div className="grid grid-cols-1 divide-y divide-zinc-800/70 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 sm:grid-cols-2 sm:divide-y-0">
                 <Row label="Telefone" value={fmtPhone(data.order.phone)} />
+                <Row label="E-mail" value={data.order.email ?? "—"} />
                 <Row label="Valor" value={fmtAmount(data.order.amount)} />
                 <Row label="Origem" value={
                   data.order.source === "aparecida"

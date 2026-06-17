@@ -5,7 +5,8 @@
     "src/lib/checkout-pricing.ts",
     "src/lib/order-contract.ts",
     "src/lib/order-status.ts",
-    "src/lib/style-catalog.ts"
+    "src/lib/style-catalog.ts",
+    "src/lib/contact-validation.ts"
   ],
   "compilerOptions": {
     "lib": ["ES2022"],

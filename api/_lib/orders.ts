@@ -27,6 +27,7 @@ export type OrderRecord = {
   order_status: OrderStatus;
   paid_at: null | string;
   phone: null | string;
+  email: null | string;
   pix_code: null | string;
   price_key: null | string;
   purchased_styles: Json | null;
@@ -164,7 +165,7 @@ export async function getOrderByAccess(params: {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
+      "id, access_token, recovery_code, order_status, phone, email, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
     )
     .eq("id", orderId)
     .eq("access_token", accessToken)
@@ -269,7 +270,7 @@ export async function createOrUpdateDraftOrderWithUpload(
     })
     .eq("id", orderId)
     .select(
-      "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
+      "id, access_token, recovery_code, order_status, phone, email, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
     )
     .single();
 
@@ -455,6 +456,7 @@ export async function buildOrderAccessResponse(params: {
       orderStatus: order.order_status,
       paidAt: order.paid_at,
       phoneNumber: order.phone,
+      email: order.email,
       pixCode: order.pix_code,
       priceKey: order.price_key,
       purchasedStyleIds: normalizeStyleIds(order.purchased_styles),

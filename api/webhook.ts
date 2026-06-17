@@ -100,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select(
-        "id, access_token, recovery_code, order_status, phone, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
+        "id, access_token, recovery_code, order_status, phone, email, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
       )
       .eq("id", externalReference)
       .single();
@@ -129,6 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderId: externalReference,
         paymentId: syncResult.paymentId ?? String(paymentData.id),
         phone: order.phone,
+        email: (order as { email?: null | string }).email ?? null,
         purchasedStyleIds: normalizeStyleIds(order.purchased_styles),
         source: (order as { source?: null | string }).source ?? null,
       });

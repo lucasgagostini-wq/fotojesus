@@ -6,6 +6,11 @@ import {
   type CheckoutPriceKey,
 } from "../../src/lib/checkout-pricing.js";
 import {
+  isValidBrWhatsApp,
+  isValidEmail,
+  normalizeEmail,
+} from "../../src/lib/contact-validation.js";
+import {
   deriveOrderStatusFromPayment,
   ensurePaidOrderArtifacts,
   type OrderRecord,
@@ -25,6 +30,7 @@ export type CheckoutRequestInput = {
   accessToken: string;
   orderId: string;
   phoneNumber: string;
+  email: null | string;
   priceKey: CheckoutPriceKey;
   quote: ReturnType<typeof getCheckoutQuote>;
 };
@@ -87,7 +93,7 @@ export function normalizePhoneNumber(rawPhoneNumber: unknown): string {
   }
 
   const digits = rawPhoneNumber.replace(/\D/g, "");
-  if (digits.length !== 11) {
+  if (!isValidBrWhatsApp(digits)) {
     throw new ClientInputError("Invalid phone number");
   }
 
@@ -99,6 +105,7 @@ export function parseCheckoutRequest(body: unknown): CheckoutRequestInput {
     accessToken?: unknown;
     orderId?: unknown;
     phoneNumber?: unknown;
+    email?: unknown;
     priceKey?: unknown;
     selectedStyleIds?: unknown;
   };
@@ -114,6 +121,12 @@ export function parseCheckoutRequest(body: unknown): CheckoutRequestInput {
   }
 
   const phoneNumber = normalizePhoneNumber(raw.phoneNumber);
+  // E-mail é leniente: NUNCA lança. Se ausente/inválido, persiste null — jamais
+  // bloqueia o checkout (a validação forte de e-mail acontece no frontend).
+  const email =
+    typeof raw.email === "string" && isValidEmail(raw.email)
+      ? normalizeEmail(raw.email)
+      : null;
   const priceKey = raw.priceKey as CheckoutPriceKey;
   let quote;
 
@@ -131,6 +144,7 @@ export function parseCheckoutRequest(body: unknown): CheckoutRequestInput {
     accessToken: raw.accessToken,
     orderId: raw.orderId,
     phoneNumber,
+    email,
     priceKey,
     quote,
   };

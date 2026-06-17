@@ -8,6 +8,7 @@ import {
   type CheckoutPriceKey,
 } from "../lib/checkout-pricing";
 import type { OrderAccessResponse, OrderSummary, StoredOrderSession } from "../lib/order-contract";
+import { isValidBrWhatsApp, isValidEmail } from "../lib/contact-validation";
 import {
   clearStoredOrderSession,
   loadSelectedImages,
@@ -183,6 +184,7 @@ function AppFlowAparecida() {
   const [uploadedPhotoFile, setUploadedPhotoFile] = useState<File | null>(null);
   const [showPhotoConfirm, setShowPhotoConfirm] = useState(false);
   const [phoneNumber, setPhoneNumber]           = useState<string>("");
+  const [email, setEmail]                       = useState<string>("");
   const [showPhoneModal, setShowPhoneModal]     = useState(false);
   const [pixOrderId, setPixOrderId]             = useState<string | null>(null);
   const [orderAccessToken, setOrderAccessToken] = useState<string | null>(null);
@@ -468,6 +470,7 @@ function AppFlowAparecida() {
           orderId: session.orderId,
           priceKey: checkoutPriceKey,
           phoneNumber,
+          email,
           selectedStyleIds: checkoutStyleIds,
         }),
       });
@@ -618,6 +621,8 @@ function AppFlowAparecida() {
         <PhoneModal
           phone={phoneNumber}
           setPhone={setPhoneNumber}
+          email={email}
+          setEmail={setEmail}
           onNext={handlePhoneConfirm}
           onClose={() => setShowPhoneModal(false)}
           error={phoneSubmitError}
@@ -1286,9 +1291,11 @@ function RecoveryModal({
   );
 }
 
-function PhoneModal({ phone, setPhone, onNext, onClose, error, submitting }: {
+function PhoneModal({ phone, setPhone, email, setEmail, onNext, onClose, error, submitting }: {
   phone: string;
   setPhone: React.Dispatch<React.SetStateAction<string>>;
+  email: string;
+  setEmail: React.Dispatch<React.SetStateAction<string>>;
   onNext: () => void;
   onClose: () => void;
   error?: string | null;
@@ -1304,8 +1311,11 @@ function PhoneModal({ phone, setPhone, onNext, onClose, error, submitting }: {
     setPhone(maskPhone(e.target.value));
   };
 
-  const digits = phone.replace(/\D/g, "");
-  const isValid = digits.length === 11;
+  const phoneValid = isValidBrWhatsApp(phone);
+  const emailValid = isValidEmail(email);
+  const isValid = phoneValid && emailValid;
+  const showPhoneError = phone.replace(/\D/g, "").length > 0 && !phoneValid;
+  const showEmailError = email.trim().length > 0 && !emailValid;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1343,7 +1353,7 @@ function PhoneModal({ phone, setPhone, onNext, onClose, error, submitting }: {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-gray-700">Seu WhatsApp (com DDD)</label>
             <div className={`flex items-stretch rounded-xl border-2 overflow-hidden transition-colors ${
-              isValid ? "border-[#F5A623]" : "border-gray-300 focus-within:border-[#F5A623]"
+              phoneValid ? "border-[#F5A623]" : showPhoneError ? "border-red-400" : "border-gray-300 focus-within:border-[#F5A623]"
             }`}>
               <div className="flex items-center gap-1.5 px-3.5 bg-amber-50 border-r-2 border-gray-200 shrink-0">
                 <span className="text-base font-black text-gray-800">+55</span>
@@ -1357,6 +1367,32 @@ function PhoneModal({ phone, setPhone, onNext, onClose, error, submitting }: {
                 className="flex-1 px-3 py-4 text-lg font-bold text-foreground placeholder:text-gray-400 outline-none bg-white"
               />
             </div>
+            {showPhoneError && (
+              <p className="text-[12px] font-bold text-red-600 leading-snug">
+                Insira um WhatsApp válido. Confira se o número está correto.
+              </p>
+            )}
+          </div>
+
+          {/* Campo de e-mail */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-bold text-gray-700">Seu melhor e-mail</label>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="voce@email.com"
+              className={`px-3 py-4 text-lg font-bold text-foreground placeholder:text-gray-400 outline-none bg-white rounded-xl border-2 transition-colors ${
+                emailValid ? "border-[#F5A623]" : showEmailError ? "border-red-400" : "border-gray-300 focus:border-[#F5A623]"
+              }`}
+            />
+            {showEmailError && (
+              <p className="text-[12px] font-bold text-red-600 leading-snug">
+                Insira um e-mail válido.
+              </p>
+            )}
           </div>
 
           {/* Mensagem de erro — visível dentro do próprio modal */}

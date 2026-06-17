@@ -25,6 +25,10 @@ function fmtPhone(phone: null | string | undefined): string {
   return phone;
 }
 
+function fmtEmail(email: null | string | undefined): string {
+  return email && email.trim() ? email : "—";
+}
+
 function fmtStyles(
   source: null | string | undefined,
   styleIds: number[] | null | undefined,
@@ -131,6 +135,7 @@ export async function notifyPixGenerated(params: {
   orderId: string;
   paymentId: null | string;
   phone: null | string;
+  email?: null | string;
   selectedStyleIds: number[];
   source?: null | string;
 }): Promise<void> {
@@ -142,6 +147,7 @@ export async function notifyPixGenerated(params: {
       { inline: true, name: "Status", value: "pending" },
       { inline: true, name: "Origem", value: origemLabel },
       { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
+      { inline: false, name: "E-mail", value: fmtEmail(params.email) },
       { inline: false, name: "Estilos", value: fmtStyles(params.source, params.selectedStyleIds) },
       { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
       { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },
@@ -158,6 +164,7 @@ export async function notifyPaymentApproved(params: {
   orderId: string;
   paymentId: null | string;
   phone: null | string;
+  email?: null | string;
   purchasedStyleIds: number[];
   source?: null | string;
 }): Promise<void> {
@@ -169,6 +176,7 @@ export async function notifyPaymentApproved(params: {
       { inline: true, name: "Status", value: "approved" },
       { inline: true, name: "Origem", value: origemLabel },
       { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
+      { inline: false, name: "E-mail", value: fmtEmail(params.email) },
       { inline: false, name: "Estilos", value: fmtStyles(params.source, params.purchasedStyleIds) },
       { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
       { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },

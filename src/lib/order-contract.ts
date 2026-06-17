@@ -43,6 +43,7 @@ export type OrderSummary = {
   orderStatus: OrderStatus;
   paidAt: null | string;
   phoneNumber: null | string;
+  email: null | string;
   pixCode: null | string;
   priceKey: null | string;
   purchasedStyleIds: number[];

@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const env = getRequiredEnv();
-    const { accessToken, orderId, phoneNumber, priceKey, quote } = parseCheckoutRequest(req.body);
+    const { accessToken, orderId, phoneNumber, email, priceKey, quote } = parseCheckoutRequest(req.body);
     const supabase = createSupabaseAdminClient(env);
     const payment = createMercadoPagoPaymentClient(env);
     const order = await getOrderByAccess({
@@ -93,6 +93,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         order_status: "payment_pending",
         payment_requested_at: new Date().toISOString(),
         phone: phoneNumber,
+        // E-mail gravado apenas quando informado — nunca sobrescreve com null um
+        // e-mail já salvo (ex.: re-submissão / recuperação). Espelha o source.
+        ...(email ? { email } : {}),
         price_key: priceKey,
         purchased_styles: quote.purchasedStyleIds,
         selected_styles: quote.selectedStyleIds,
@@ -178,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderId: order.id,
       paymentId,
       phone: phoneNumber,
+      email,
       selectedStyleIds: quote.selectedStyleIds,
       source: order.source,
     });

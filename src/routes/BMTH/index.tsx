@@ -409,6 +409,7 @@ type Order = {
   id: string;
   created_at: string;
   phone: null | string;
+  email: null | string;
   amount: null | number;
   label: null | string;
   purchased_styles: null | number[];
@@ -737,6 +738,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                     <tr>
                       <th className="px-3 py-2.5 font-medium">Data</th>
                       <th className="px-3 py-2.5 font-medium">Telefone</th>
+                      <th className="px-3 py-2.5 font-medium">E-mail</th>
                       <th className="px-3 py-2.5 font-medium">Valor</th>
                       <th className="px-3 py-2.5 font-medium">Estilos</th>
                       <th className="px-3 py-2.5 font-medium">Origem</th>
@@ -748,21 +750,21 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   <tbody className="divide-y divide-zinc-800/70">
                     {loadingOrders && (
                       <tr>
-                        <td colSpan={8} className="px-3 py-8 text-center text-zinc-500">
+                        <td colSpan={9} className="px-3 py-8 text-center text-zinc-500">
                           Carregando...
                         </td>
                       </tr>
                     )}
                     {error && !loadingOrders && (
                       <tr>
-                        <td colSpan={8} className="px-3 py-8 text-center text-rose-400">
+                        <td colSpan={9} className="px-3 py-8 text-center text-rose-400">
                           {error}
                         </td>
                       </tr>
                     )}
                     {!loadingOrders && !error && orders.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-3 py-8 text-center text-zinc-500">
+                        <td colSpan={9} className="px-3 py-8 text-center text-zinc-500">
                           Nenhum pedido encontrado.
                         </td>
                       </tr>
@@ -774,6 +776,9 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                           <tr key={o.id} className="hover:bg-zinc-900/50">
                             <td className="whitespace-nowrap px-3 py-2.5 text-zinc-400">{fmtDate(o.created_at)}</td>
                             <td className="whitespace-nowrap px-3 py-2.5 text-zinc-200">{fmtPhone(o.phone)}</td>
+                            <td className="px-3 py-2.5 text-zinc-400">
+                              <span className="block max-w-[160px] truncate" title={o.email ?? undefined}>{o.email ?? "—"}</span>
+                            </td>
                             <td className="whitespace-nowrap px-3 py-2.5 font-medium text-zinc-100">
                               {fmtAmount(o.amount)}
                             </td>
