@@ -705,40 +705,42 @@ const FUNNEL_STEPS: { key: keyof FunnelRoute; label: string }[] = [
 const ORDER_STEP_KEYS = new Set<keyof FunnelRoute>(["pix", "approved", "delivered"]);
 
 function FunnelColumn({ title, accent, data }: { title: string; accent: string; data: FunnelRoute | undefined }) {
-  // % capada em 100%: dentro de cada grupo é monotônica, mas casos de borda
-  // (recuperação de sessão) podem gerar ratio > 1. A junção sessão→pedido não exibe %.
-  const pct = (a: number, b: number) => (b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0);
+  const get = (k: keyof FunnelRoute) => data?.[k] ?? 0;
+  // Retenção desde o topo de CADA grupo: sessões vs Landing, pedidos vs PIX.
+  // Bases distintas (sessão ≠ pedido) → os grupos nunca se cruzam e a % é monotônica.
+  const landingBase = get("landing");
+  const pixBase = get("pix");
+  const retention = (key: keyof FunnelRoute): null | number => {
+    const base = ORDER_STEP_KEYS.has(key) ? pixBase : landingBase;
+    if (base <= 0) return null; // base zerada → "—"
+    return Math.min(100, Math.round((get(key) / base) * 100));
+  };
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
       <p className="mb-1 text-sm font-bold" style={{ color: accent }}>{title}</p>
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Navegação · sessões</p>
+      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Navegação · sessões (% da Landing)</p>
       <div className="flex flex-col">
         {FUNNEL_STEPS.map((step, i) => {
-          const value = data?.[step.key] ?? 0;
-          const nextEntry = i < FUNNEL_STEPS.length - 1 ? FUNNEL_STEPS[i + 1] : null;
-          const nextValue = nextEntry ? (data?.[nextEntry.key] ?? 0) : null;
-          // Borda = passo de sessão seguido por passo de pedido (Telefone → PIX): % não comparável.
-          const isBoundary = nextEntry ? !ORDER_STEP_KEYS.has(step.key) && ORDER_STEP_KEYS.has(nextEntry.key) : false;
-          const showPct = nextEntry !== null && !isBoundary;
+          const value = get(step.key);
+          const ret = retention(step.key);
           const startsOrderGroup =
             ORDER_STEP_KEYS.has(step.key) && (i === 0 || !ORDER_STEP_KEYS.has(FUNNEL_STEPS[i - 1].key));
           return (
             <div key={step.key}>
               {startsOrderGroup && (
                 <div className="mb-1 mt-2 border-t border-dashed border-zinc-700 pt-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                  Pedidos · todos os tempos
+                  Pedidos · todos os tempos (% do PIX)
                 </div>
               )}
-              <div className="flex items-center justify-between py-1">
+              <div className="flex items-center justify-between py-1.5">
                 <span className="text-sm text-zinc-300">{step.label}</span>
-                <span className="text-sm font-bold tabular-nums text-zinc-100">{value}</span>
-              </div>
-              {showPct && (
-                <div className="flex items-center gap-1.5 pb-1 pl-1 text-[11px] text-zinc-500">
-                  <span className="text-zinc-600">↳</span>
-                  <span className="tabular-nums">{pct(nextValue as number, value)}%</span>
+                <div className="flex items-baseline gap-2.5">
+                  <span className="w-7 text-right text-sm font-bold tabular-nums text-zinc-100">{value}</span>
+                  <span className="w-11 text-right text-[11px] tabular-nums text-zinc-400">
+                    {ret === null ? "—" : `${ret}%`}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
