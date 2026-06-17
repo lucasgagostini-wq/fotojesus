@@ -4,12 +4,7 @@
  * A URL vem exclusivamente da env DISCORD_WEBHOOK_URL (nunca hardcoded).
  */
 
-const STYLE_LABELS: Record<number, string> = {
-  1: "Jesus te abraçando",
-  2: "Jesus ao seu lado sorrindo",
-  3: "Jesus segurando sua mão",
-  4: "Momento no campo com Jesus",
-};
+import { styleLabel } from "../../src/lib/style-catalog.js";
 
 const COLOR = {
   approved: 0xf5760a, // laranja "fogo"
@@ -30,9 +25,12 @@ function fmtPhone(phone: null | string | undefined): string {
   return phone;
 }
 
-function fmtStyles(styleIds: number[] | null | undefined): string {
+function fmtStyles(
+  source: null | string | undefined,
+  styleIds: number[] | null | undefined,
+): string {
   if (!styleIds || styleIds.length === 0) return "—";
-  return styleIds.map((id) => `${id} — ${STYLE_LABELS[id] ?? "estilo"}`).join("\n");
+  return styleIds.map((id) => `${id} — ${styleLabel(source, id)}`).join("\n");
 }
 
 function nowSaoPaulo(): string {
@@ -144,7 +142,7 @@ export async function notifyPixGenerated(params: {
       { inline: true, name: "Status", value: "pending" },
       { inline: true, name: "Origem", value: origemLabel },
       { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
-      { inline: false, name: "Estilos", value: fmtStyles(params.selectedStyleIds) },
+      { inline: false, name: "Estilos", value: fmtStyles(params.source, params.selectedStyleIds) },
       { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
       { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },
       { inline: false, name: "Data", value: nowSaoPaulo() },
@@ -171,7 +169,7 @@ export async function notifyPaymentApproved(params: {
       { inline: true, name: "Status", value: "approved" },
       { inline: true, name: "Origem", value: origemLabel },
       { inline: false, name: "Telefone", value: fmtPhone(params.phone) },
-      { inline: false, name: "Estilos", value: fmtStyles(params.purchasedStyleIds) },
+      { inline: false, name: "Estilos", value: fmtStyles(params.source, params.purchasedStyleIds) },
       { inline: false, name: "Payment ID", value: `\`${params.paymentId ?? "—"}\`` },
       { inline: false, name: "Pedido", value: `\`${params.orderId}\`` },
       { inline: false, name: "Data", value: nowSaoPaulo() },

@@ -4,7 +4,8 @@
     "api/**/*.ts",
     "src/lib/checkout-pricing.ts",
     "src/lib/order-contract.ts",
-    "src/lib/order-status.ts"
+    "src/lib/order-status.ts",
+    "src/lib/style-catalog.ts"
   ],
   "compilerOptions": {
     "lib": ["ES2022"],

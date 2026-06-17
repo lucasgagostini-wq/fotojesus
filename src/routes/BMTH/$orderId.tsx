@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { fmtAmount, fmtDate, fmtPhone, StatusBadge, STYLE_LABELS } from "./index";
+import { fmtAmount, fmtDate, fmtPhone, StatusBadge } from "./index";
+import { styleLabel } from "../../lib/style-catalog";
 
 export const Route = createFileRoute("/BMTH/$orderId")({
   component: OrderDetailPage,
@@ -220,7 +221,7 @@ function OrderDetailPage() {
                         <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-800 text-[11px] font-bold text-zinc-400">
                           {id}
                         </span>
-                        {STYLE_LABELS[id] ?? `Estilo ${id}`}
+                        {styleLabel(data.order.source, id)}
                       </li>
                     ))}
                   </ul>
