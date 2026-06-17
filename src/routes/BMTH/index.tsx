@@ -10,6 +10,7 @@ type ConsoleCtx = {
   setStage: React.Dispatch<React.SetStateAction<ConsoleStage>>;
   setPending: React.Dispatch<React.SetStateAction<(() => Promise<void>) | null>>;
   refresh: () => void;
+  orders: Order[];
 };
 
 type CommandDef = { description: string; run: (args: string[], ctx: ConsoleCtx) => Promise<void> };
@@ -83,6 +84,60 @@ const COMMANDS: Record<string, CommandDef> = {
       });
     },
   },
+  exclude: {
+    description: "Exclui UM pedido pelo código (8 caracteres) ou ID completo",
+    run: async (args, ctx) => {
+      const code = (args[0] ?? "").trim().toLowerCase();
+      if (!code) {
+        ctx.push("err", "Uso: /exclude <código de 8 caracteres ou ID completo>");
+        return;
+      }
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+      const matches = UUID_RE.test(code)
+        ? ctx.orders.filter((o) => o.id.toLowerCase() === code)
+        : ctx.orders.filter((o) => o.id.toLowerCase().startsWith(code));
+
+      if (matches.length === 0) {
+        ctx.push("err", `Nenhum pedido com código "${code}" na lista atual.`);
+        ctx.push("info", "Ajuste o filtro/busca para trazer o pedido à tela, ou use o ID completo.");
+        return;
+      }
+      if (matches.length > 1) {
+        ctx.push("err", `Código "${code}" é ambíguo (${matches.length} pedidos). Use o ID completo:`);
+        for (const o of matches.slice(0, 8)) {
+          ctx.push("info", `  ${o.id}  ${fmtPhone(o.phone)}  ${fmtAmount(o.amount)}`);
+        }
+        return;
+      }
+
+      const order = matches[0];
+      ctx.push("info", "Pedido selecionado para exclusão:");
+      ctx.push("info", `  Código   : ${order.id.slice(0, 8)}  (${order.id})`);
+      ctx.push("info", `  Telefone : ${fmtPhone(order.phone)}`);
+      ctx.push("info", `  Valor    : ${fmtAmount(order.amount)}`);
+      ctx.push("info", `  Status   : ${order.order_status}`);
+      ctx.push("info", `  Origem   : ${order.source ?? "—"}`);
+      ctx.push("prompt", "Digite CONFIRMAR para excluir este pedido (irreversível).");
+      ctx.setStage("confirm");
+      ctx.setPending(() => async () => {
+        ctx.push("info", `Excluindo pedido ${order.id.slice(0, 8)}...`);
+        try {
+          const res = await fetch("/api/bmth/admin-cmd", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: "exclude", orderId: order.id }),
+          });
+          const data = await res.json() as { ok?: boolean; message?: string; error?: string };
+          if (!data.ok) throw new Error(data.error ?? "Falha ao excluir");
+          ctx.push("ok", `✓ ${data.message ?? "Pedido excluído."}`);
+          ctx.refresh();
+        } catch (err) {
+          ctx.push("err", `✗ ${err instanceof Error ? err.message : "Erro ao excluir"}`);
+        }
+      });
+    },
+  },
 };
 
 function TerminalSvg() {
@@ -93,7 +148,7 @@ function TerminalSvg() {
   );
 }
 
-function AdminConsole({ refresh }: { refresh: () => void }) {
+function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[] }) {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<ConsoleEntry[]>([]);
   const [input, setInput] = useState("");
@@ -163,7 +218,7 @@ function AdminConsole({ refresh }: { refresh: () => void }) {
     }
   }, [open, push]);
 
-  const ctx: ConsoleCtx = { push, refresh, setPending, setStage };
+  const ctx: ConsoleCtx = { orders, push, refresh, setPending, setStage };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -473,6 +528,28 @@ const FILTERS = [
   { key: "aparecida", label: "🔵 Aparecida" },
 ];
 
+function CodeChip({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      title="Copiar ID completo"
+      onClick={() => {
+        void navigator.clipboard
+          ?.writeText(id)
+          .then(() => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1200);
+          })
+          .catch(() => {});
+      }}
+      className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 font-mono text-[11px] text-zinc-300 hover:bg-zinc-800"
+    >
+      {copied ? "copiado!" : id.slice(0, 8)}
+    </button>
+  );
+}
+
 function SourceBadge({ source }: { source: null | string }) {
   if (source === "jesus") {
     return <span className="inline-block rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300 whitespace-nowrap">🟡 JESUS</span>;
@@ -664,27 +741,28 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                       <th className="px-3 py-2.5 font-medium">Estilos</th>
                       <th className="px-3 py-2.5 font-medium">Origem</th>
                       <th className="px-3 py-2.5 font-medium">Status</th>
+                      <th className="px-3 py-2.5 font-medium">Código</th>
                       <th className="px-3 py-2.5 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/70">
                     {loadingOrders && (
                       <tr>
-                        <td colSpan={7} className="px-3 py-8 text-center text-zinc-500">
+                        <td colSpan={8} className="px-3 py-8 text-center text-zinc-500">
                           Carregando...
                         </td>
                       </tr>
                     )}
                     {error && !loadingOrders && (
                       <tr>
-                        <td colSpan={7} className="px-3 py-8 text-center text-rose-400">
+                        <td colSpan={8} className="px-3 py-8 text-center text-rose-400">
                           {error}
                         </td>
                       </tr>
                     )}
                     {!loadingOrders && !error && orders.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-3 py-8 text-center text-zinc-500">
+                        <td colSpan={8} className="px-3 py-8 text-center text-zinc-500">
                           Nenhum pedido encontrado.
                         </td>
                       </tr>
@@ -707,6 +785,9 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                             </td>
                             <td className="px-3 py-2.5">
                               <StatusBadge status={o.order_status} />
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5">
+                              <CodeChip id={o.id} />
                             </td>
                             <td className="whitespace-nowrap px-3 py-2.5 text-right">
                               <Link
@@ -780,7 +861,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           </aside>
         </div>
       </main>
-      <AdminConsole refresh={refresh} />
+      <AdminConsole refresh={refresh} orders={orders} />
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   PAID_STATUSES,
   startOfTodaySaoPauloISO,
 } from "./admin-db.js";
-import { ORDER_SOURCE_BUCKET } from "../../src/lib/order-contract.js";
+import { ORDER_RESULTS_BUCKET, ORDER_SOURCE_BUCKET } from "../../src/lib/order-contract.js";
 import { sendTest as discordSendTest } from "./discord.js";
 
 const PAGE_SIZE = 20;
@@ -275,7 +275,7 @@ export async function handleAdminCmd(req: VercelRequest, res: VercelResponse) {
   const session = requireSession(req);
   if (!session) return res.status(401).json({ error: "Não autenticado" });
 
-  const body = (req.body ?? {}) as { command?: unknown };
+  const body = (req.body ?? {}) as { command?: unknown; orderId?: unknown };
   const command = typeof body.command === "string" ? body.command.trim() : "";
 
   switch (command) {
@@ -332,6 +332,91 @@ export async function handleAdminCmd(req: VercelRequest, res: VercelResponse) {
         const message = err instanceof Error ? err.message : "Erro desconhecido";
         console.error("[bmth/admin-cmd/discord-test]", err);
         return res.status(200).json({ ok: false, error: message, webhookConfigured });
+      }
+    }
+
+    case "exclude": {
+      const rawId =
+        typeof body.orderId === "string" ? body.orderId.trim().toLowerCase() : "";
+      const UUID_RE =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+      if (!UUID_RE.test(rawId)) {
+        return res
+          .status(200)
+          .json({ ok: false, error: "ID inválido (informe o ID completo do pedido)." });
+      }
+      try {
+        const supabase = createAdminSupabase();
+
+        const { data: order, error: fetchErr } = await supabase
+          .from("orders")
+          .select("id, phone, amount, order_status, source_original_path, source_preview_path")
+          .eq("id", rawId)
+          .maybeSingle();
+        if (fetchErr) throw new Error(fetchErr.message);
+        if (!order) {
+          return res.status(200).json({ ok: false, error: "Pedido não encontrado." });
+        }
+
+        // Guarda: pedidos pagos/aprovados não podem ser excluídos pelo /exclude.
+        const blocked = new Set([...PAID_STATUSES, ...DELIVERED_STATUSES]);
+        if (blocked.has(order.order_status)) {
+          return res.status(200).json({
+            ok: false,
+            error: `Pedido pago/aprovado (status "${order.order_status}") — exclusão bloqueada pelo /exclude.`,
+          });
+        }
+
+        // Storage (best-effort, não-fatal): foto original/preview + resultados.
+        try {
+          const sourcePaths = [order.source_original_path, order.source_preview_path].filter(
+            (p): p is string => typeof p === "string" && p.length > 0,
+          );
+          if (sourcePaths.length > 0) {
+            await supabase.storage.from(ORDER_SOURCE_BUCKET).remove(sourcePaths);
+          }
+          const { data: results } = await supabase
+            .from("order_results")
+            .select("result_path, preview_path")
+            .eq("order_id", rawId);
+          const resultPaths = (results ?? [])
+            .flatMap((r) => [r.result_path, r.preview_path])
+            .filter((p): p is string => typeof p === "string" && p.length > 0);
+          if (resultPaths.length > 0) {
+            await supabase.storage.from(ORDER_RESULTS_BUCKET).remove(resultPaths);
+          }
+        } catch (storageErr) {
+          console.warn("[bmth/admin-cmd/exclude] limpeza de storage falhou (ignorado)", storageErr);
+        }
+
+        // Apaga a linha — ON DELETE CASCADE remove order_events/order_results/order_deliveries.
+        const { error: delErr, count } = await supabase
+          .from("orders")
+          .delete({ count: "exact" })
+          .eq("id", rawId);
+        if (delErr) throw new Error(delErr.message);
+        if (!count) {
+          return res
+            .status(200)
+            .json({ ok: false, error: "Pedido não encontrado (já removido?)." });
+        }
+
+        const short = rawId.slice(0, 8);
+        const valor =
+          order.amount == null
+            ? "—"
+            : `R$ ${Number(order.amount).toFixed(2).replace(".", ",")}`;
+        console.log(
+          `[bmth/admin-cmd/exclude] ${rawId} (${order.order_status}) por ${session.u}`,
+        );
+        return res.status(200).json({
+          ok: true,
+          message: `Pedido ${short} excluído (${order.phone ?? "sem telefone"}, ${valor}).`,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Internal error";
+        console.error("[bmth/admin-cmd/exclude]", err);
+        return res.status(500).json({ error: message });
       }
     }
 
