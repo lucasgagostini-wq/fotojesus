@@ -563,6 +563,56 @@ function SourceBadge({ source }: { source: null | string }) {
 
 const AUTO_REFRESH_MS = 15_000; // intervalo do polling automático do painel: 15s
 
+type FunnelRoute = {
+  landing: number; photo_confirmed: number; styles: number; results: number;
+  offer_view: number; offer_accepted: number; offer_declined: number;
+  phone_modal: number; phone: number; pix: number; approved: number; delivered: number;
+};
+type FunnelData = { jesus: FunnelRoute; aparecida: FunnelRoute };
+
+const FUNNEL_STEPS: { key: keyof FunnelRoute; label: string }[] = [
+  { key: "landing", label: "Landing" },
+  { key: "photo_confirmed", label: "Upload" },
+  { key: "styles", label: "Estilos" },
+  { key: "results", label: "Resultados" },
+  { key: "phone", label: "Telefone" },
+  { key: "pix", label: "PIX" },
+  { key: "approved", label: "Aprovado" },
+  { key: "delivered", label: "Entregue" },
+];
+
+function FunnelColumn({ title, accent, data }: { title: string; accent: string; data: FunnelRoute | undefined }) {
+  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+      <p className="mb-3 text-sm font-bold" style={{ color: accent }}>{title}</p>
+      <div className="flex flex-col">
+        {FUNNEL_STEPS.map((step, i) => {
+          const value = data?.[step.key] ?? 0;
+          const next = i < FUNNEL_STEPS.length - 1 ? (data?.[FUNNEL_STEPS[i + 1].key] ?? 0) : null;
+          return (
+            <div key={step.key}>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-zinc-300">{step.label}</span>
+                <span className="text-sm font-bold tabular-nums text-zinc-100">{value}</span>
+              </div>
+              {next !== null && (
+                <div className="flex items-center gap-1.5 pb-1 pl-1 text-[11px] text-zinc-500">
+                  <span className="text-zinc-600">↳</span>
+                  <span className="tabular-nums">{pct(next, value)}%</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 border-t border-zinc-800 pt-2 text-[11px] text-zinc-500">
+        Oferta: {data?.offer_view ?? 0} vista · {data?.offer_accepted ?? 0} aceita · {data?.offer_declined ?? 0} recusada
+      </div>
+    </div>
+  );
+}
+
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -575,6 +625,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [funnel, setFunnel] = useState<FunnelData | null>(null);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -609,6 +660,16 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [filter, page, search]);
 
+  // Funnel Analytics — isolado: falha silenciosa, nunca afeta o resto do painel.
+  const loadFunnel = useCallback(async () => {
+    try {
+      const res = await fetch("/api/bmth/funnel", { credentials: "include" });
+      if (res.ok) setFunnel(await res.json());
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
   const refresh = useCallback(() => {
     void loadDashboard();
     void loadOrders();
@@ -622,16 +683,20 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     void loadOrders();
   }, [loadOrders]);
 
+  useEffect(() => {
+    void loadFunnel();
+  }, [loadFunnel]);
+
   // Atualização automática (polling 15s): recarrega cards, métricas, últimos
   // pagamentos e tabela de pedidos SEM reload e sem perder filtro/busca/scroll.
   // O efeito recria o intervalo quando filtro/página/busca mudam (deps de
   // loadOrders/loadDashboard), garantindo que cada ciclo use o estado atual.
   useEffect(() => {
     const id = window.setInterval(() => {
-      void Promise.all([loadDashboard(), loadOrders({ silent: true })]);
+      void Promise.all([loadDashboard(), loadOrders({ silent: true }), loadFunnel()]);
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(id);
-  }, [loadDashboard, loadOrders]);
+  }, [loadDashboard, loadOrders, loadFunnel]);
 
   async function logout() {
     await fetch("/api/bmth/logout", { credentials: "include", method: "POST" }).catch(() => {});
@@ -865,6 +930,15 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </aside>
         </div>
+
+        {/* Funnel Analytics */}
+        <section className="mt-8">
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-400">Funnel Analytics</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FunnelColumn title="🟡 JESUS" accent="#F5A623" data={funnel?.jesus} />
+            <FunnelColumn title="🔵 APARECIDA" accent="#378ADD" data={funnel?.aparecida} />
+          </div>
+        </section>
       </main>
       <AdminConsole refresh={refresh} orders={orders} />
     </div>

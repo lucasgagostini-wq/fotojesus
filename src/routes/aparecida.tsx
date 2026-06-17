@@ -9,6 +9,7 @@ import {
 } from "../lib/checkout-pricing";
 import type { OrderAccessResponse, OrderSummary, StoredOrderSession } from "../lib/order-contract";
 import { isValidBrWhatsApp, isValidEmail } from "../lib/contact-validation";
+import { trackFunnel } from "../lib/funnel-tracking";
 import {
   clearStoredOrderSession,
   loadSelectedImages,
@@ -319,6 +320,13 @@ function AppFlowAparecida() {
     saveSelectedImages(SESSION_SCOPE, resultsSelected);
   }, [resultsSelected]);
 
+  // Funnel analytics (aditivo, fire-and-forget): registra a visualização de cada
+  // passo do funil (landing/styles/loading/results/pix). trackFunnel nunca lança.
+  useEffect(() => {
+    trackFunnel(SESSION_SCOPE, `${currentStep}_view`, orderSession?.orderId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
+
   const handleFileSelect = (file: File) => {
     if (uploadedPhotoUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(uploadedPhotoUrl);
@@ -386,6 +394,7 @@ function AppFlowAparecida() {
     // Navegar imediatamente — upload continua em segundo plano sem bloquear o usuário
     setShowPhotoConfirm(false);
     nextStep("styles");
+    trackFunnel(SESSION_SCOPE, "photo_confirmed", orderSession?.orderId);
     setPhotoUploadError(null);
     setPhoneSubmitError(null);
     setPhotoUploading(true);
@@ -416,6 +425,7 @@ function AppFlowAparecida() {
     setCheckoutStyleIds(quote.selectedStyleIds);
     setPhoneSubmitError(null);
     setShowPhoneModal(true);
+    trackFunnel(SESSION_SCOPE, "phone_modal_open", orderSession?.orderId);
   };
 
   const handleResultsContinue = () => {
@@ -423,11 +433,13 @@ function AppFlowAparecida() {
       goToPhone("quad", resultsSelected);
     } else {
       setShowUpsell(true);
+      trackFunnel(SESSION_SCOPE, "offer_view", orderSession?.orderId);
     }
   };
 
   const handlePhoneConfirm = async () => {
     setPhoneSubmitError(null);
+    trackFunnel(SESSION_SCOPE, "phone_submit", orderSession?.orderId);
 
     // O upload roda em segundo plano. Se o pedido ainda não foi criado (upload
     // em andamento ou que falhou), garantimos aqui SEM expulsar o usuário do
@@ -612,8 +624,8 @@ function AppFlowAparecida() {
       {showUpsell && (
         <UpsellModal
           selectedIds={resultsSelected}
-          onAccept={(priceKey, selectedStyleIds) => { setShowUpsell(false); goToPhone(priceKey, selectedStyleIds); }}
-          onDecline={(priceKey, selectedStyleIds) => { setShowUpsell(false); goToPhone(priceKey, selectedStyleIds); }}
+          onAccept={(priceKey, selectedStyleIds) => { trackFunnel(SESSION_SCOPE, "offer_accepted", orderSession?.orderId); setShowUpsell(false); goToPhone(priceKey, selectedStyleIds); }}
+          onDecline={(priceKey, selectedStyleIds) => { trackFunnel(SESSION_SCOPE, "offer_declined", orderSession?.orderId); setShowUpsell(false); goToPhone(priceKey, selectedStyleIds); }}
           onClose={() => setShowUpsell(false)}
         />
       )}

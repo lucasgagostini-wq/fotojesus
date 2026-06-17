@@ -118,6 +118,71 @@ export async function handleDashboard(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+// ─────────────────────────────── funnel analytics ─────────────────────────────
+
+export async function handleFunnel(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "GET") return res.status(405).end();
+  res.setHeader("Cache-Control", "no-store");
+  if (!requireSession(req)) return res.status(401).json({ error: "Não autenticado" });
+
+  try {
+    const supabase = createAdminSupabase();
+
+    // Topo do funil: view agregada (sessões distintas por rota/evento).
+    const { data: rows, error: viewErr } = await supabase
+      .from("funnel_event_counts")
+      .select("route_source, event_name, sessions");
+    if (viewErr) throw new Error(viewErr.message);
+
+    const events: Record<string, number> = {}; // chave: `${source}:${event}`
+    for (const r of (rows ?? []) as { route_source: string; event_name: string; sessions: number }[]) {
+      events[`${r.route_source}:${r.event_name}`] = Number(r.sessions) || 0;
+    }
+    const ev = (source: string, name: string) => events[`${source}:${name}`] ?? 0;
+
+    // Fundo do funil: derivado de orders (read-only), por source. Usa os constants
+    // PAID_STATUSES/DELIVERED_STATUSES já existentes (sem hardcode → sem drift).
+    async function countOrders(source: string, kind: "approved" | "delivered" | "pix"): Promise<number> {
+      let q = supabase.from("orders").select("id", { count: "exact", head: true }).eq("source", source);
+      if (kind === "pix") q = q.not("mp_payment_id", "is", null);
+      else if (kind === "approved") q = q.in("order_status", PAID_STATUSES);
+      else q = q.in("order_status", DELIVERED_STATUSES);
+      const { count, error } = await q;
+      if (error) throw new Error(error.message);
+      return count ?? 0;
+    }
+
+    const buildFunnel = async (source: string) => {
+      const [pix, approved, delivered] = await Promise.all([
+        countOrders(source, "pix"),
+        countOrders(source, "approved"),
+        countOrders(source, "delivered"),
+      ]);
+      return {
+        landing: ev(source, "landing_view"),
+        photo_confirmed: ev(source, "photo_confirmed"),
+        styles: ev(source, "styles_view"),
+        results: ev(source, "results_view"),
+        offer_view: ev(source, "offer_view"),
+        offer_accepted: ev(source, "offer_accepted"),
+        offer_declined: ev(source, "offer_declined"),
+        phone_modal: ev(source, "phone_modal_open"),
+        phone: ev(source, "phone_submit"),
+        pix,
+        approved,
+        delivered,
+      };
+    };
+
+    const [jesus, aparecida] = await Promise.all([buildFunnel("jesus"), buildFunnel("aparecida")]);
+    return res.status(200).json({ jesus, aparecida });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    console.error("[bmth/funnel]", err);
+    return res.status(500).json({ error: message });
+  }
+}
+
 // ─────────────────────────────── lista de pedidos ─────────────────────────────
 
 export async function handleOrders(req: VercelRequest, res: VercelResponse) {
