@@ -700,25 +700,43 @@ const FUNNEL_STEPS: { key: keyof FunnelRoute; label: string }[] = [
   { key: "delivered", label: "Entregue" },
 ];
 
+// Passos derivados de `orders` (all-time). Os demais vêm de sessões de funnel_events
+// (acumuladas só desde o tracking). A junção sessão→pedido NÃO é uma conversão comparável.
+const ORDER_STEP_KEYS = new Set<keyof FunnelRoute>(["pix", "approved", "delivered"]);
+
 function FunnelColumn({ title, accent, data }: { title: string; accent: string; data: FunnelRoute | undefined }) {
-  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
+  // % capada em 100%: dentro de cada grupo é monotônica, mas casos de borda
+  // (recuperação de sessão) podem gerar ratio > 1. A junção sessão→pedido não exibe %.
+  const pct = (a: number, b: number) => (b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0);
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-      <p className="mb-3 text-sm font-bold" style={{ color: accent }}>{title}</p>
+      <p className="mb-1 text-sm font-bold" style={{ color: accent }}>{title}</p>
+      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Navegação · sessões</p>
       <div className="flex flex-col">
         {FUNNEL_STEPS.map((step, i) => {
           const value = data?.[step.key] ?? 0;
-          const next = i < FUNNEL_STEPS.length - 1 ? (data?.[FUNNEL_STEPS[i + 1].key] ?? 0) : null;
+          const nextEntry = i < FUNNEL_STEPS.length - 1 ? FUNNEL_STEPS[i + 1] : null;
+          const nextValue = nextEntry ? (data?.[nextEntry.key] ?? 0) : null;
+          // Borda = passo de sessão seguido por passo de pedido (Telefone → PIX): % não comparável.
+          const isBoundary = nextEntry ? !ORDER_STEP_KEYS.has(step.key) && ORDER_STEP_KEYS.has(nextEntry.key) : false;
+          const showPct = nextEntry !== null && !isBoundary;
+          const startsOrderGroup =
+            ORDER_STEP_KEYS.has(step.key) && (i === 0 || !ORDER_STEP_KEYS.has(FUNNEL_STEPS[i - 1].key));
           return (
             <div key={step.key}>
+              {startsOrderGroup && (
+                <div className="mb-1 mt-2 border-t border-dashed border-zinc-700 pt-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                  Pedidos · todos os tempos
+                </div>
+              )}
               <div className="flex items-center justify-between py-1">
                 <span className="text-sm text-zinc-300">{step.label}</span>
                 <span className="text-sm font-bold tabular-nums text-zinc-100">{value}</span>
               </div>
-              {next !== null && (
+              {showPct && (
                 <div className="flex items-center gap-1.5 pb-1 pl-1 text-[11px] text-zinc-500">
                   <span className="text-zinc-600">↳</span>
-                  <span className="tabular-nums">{pct(next, value)}%</span>
+                  <span className="tabular-nums">{pct(nextValue as number, value)}%</span>
                 </div>
               )}
             </div>
