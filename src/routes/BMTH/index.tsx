@@ -15,13 +15,53 @@ type ConsoleCtx = {
 
 type CommandDef = { description: string; run: (args: string[], ctx: ConsoleCtx) => Promise<void> };
 
+// Feedback amigável randomizado (Feature 4). Pequena variação pra não parecer robótico.
+const CANCEL_MESSAGES = [
+  "👍 Nenhuma alteração foi feita.",
+  "🛑 Operação cancelada. Dados intactos.",
+  "👌 Comando abortado — nada mudou.",
+  "✋ Cancelado. Tudo segue como estava.",
+];
+const NEAR_CONFIRM_MESSAGES = [
+  "🤔 Quis dizer CONFIRMAR? Digite exatamente CONFIRMAR (maiúsculas).",
+  "⚠️ A confirmação precisa ser exata: digite CONFIRMAR.",
+  "🔤 Quase! É CONFIRMAR, tudo em maiúsculas.",
+];
+const pick = (arr: string[], seed: number) => arr[seed % arr.length];
+
 const COMMANDS: Record<string, CommandDef> = {
   help: {
     description: "Lista os comandos disponíveis",
     run: async (_args, ctx) => {
-      ctx.push("info", "Comandos disponíveis:");
+      ctx.push("info", "Comandos disponíveis (atalho: ? abre esta ajuda):");
       for (const [name, def] of Object.entries(COMMANDS)) {
         ctx.push("info", `  /${name.padEnd(18)} — ${def.description}`);
+      }
+    },
+  },
+  stats: {
+    description: "Mostra as métricas do painel (pedidos, pagamentos, faturamento)",
+    run: async (_args, ctx) => {
+      ctx.push("info", "Carregando métricas...");
+      try {
+        const res = await fetch("/api/bmth/dashboard", { credentials: "include" });
+        const d = await res.json() as {
+          ordersToday?: number;
+          paymentsApproved?: number;
+          paymentsPending?: number;
+          revenueToday?: number;
+          revenueTotal?: number;
+          error?: string;
+        };
+        if (!res.ok) throw new Error(d.error ?? "Erro ao carregar métricas");
+        ctx.push("ok",   "📊 Métricas do painel");
+        ctx.push("info", `  Pedidos hoje        : ${d.ordersToday ?? 0}`);
+        ctx.push("info", `  Pagamentos aprovados: ${d.paymentsApproved ?? 0}`);
+        ctx.push("info", `  Pagamentos pendentes: ${d.paymentsPending ?? 0}`);
+        ctx.push("info", `  Faturamento hoje    : ${fmtAmount(d.revenueToday ?? 0)}`);
+        ctx.push("info", `  Faturamento total   : ${fmtAmount(d.revenueTotal ?? 0)}`);
+      } catch (err) {
+        ctx.push("err", `✗ ${err instanceof Error ? err.message : "Erro de rede"}`);
       }
     },
   },
@@ -182,6 +222,10 @@ function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[
   const [pending, setPending] = useState<(() => Promise<void>) | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [dismissedInput, setDismissedInput] = useState("");
+  // Histórico de comandos (Feature 1): só na sessão, em memória. histIdx === -1 = linha atual.
+  const historyRef = useRef<string[]>([]);
+  const [histIdx, setHistIdx] = useState(-1);
+  const submitCountRef = useRef(0); // semente p/ feedback amigável randomizado (sem Math.random)
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const idRef = useRef(0);
@@ -207,8 +251,41 @@ function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[
     inputRef.current?.focus();
   }
 
+  function recallHistory(direction: -1 | 1) {
+    const hist = historyRef.current;
+    if (hist.length === 0) return;
+    // histIdx: -1 = linha atual (editando); 0 = comando mais recente; ↑ = mais antigo.
+    let next: number;
+    if (direction === 1) {
+      next = histIdx === -1 ? 0 : Math.min(histIdx + 1, hist.length - 1);
+    } else {
+      next = histIdx === -1 ? -1 : histIdx - 1;
+    }
+    if (next < 0) {
+      setHistIdx(-1);
+      setInput("");
+      setDismissedInput("");
+      return;
+    }
+    setHistIdx(next);
+    const value = hist[hist.length - 1 - next];
+    setInput(value);
+    setDismissedInput(value); // evita reabrir o autocomplete ao recuperar do histórico
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!showSuggestions) return;
+    // Sem dropdown de sugestão: ↑/↓ navegam o histórico de comandos (estilo terminal).
+    if (!showSuggestions) {
+      if (stage === "confirm") return; // não recuperar histórico durante confirmação
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        recallHistory(1);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        recallHistory(-1);
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIdx((i) => Math.min(i + 1, suggestions.length - 1));
@@ -239,7 +316,7 @@ function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[
       inputRef.current?.focus();
       if (!initRef.current) {
         initRef.current = true;
-        push("info", "Console BMTH v1.0 — Digite /help para listar comandos.");
+        push("info", "Console BMTH v1.1 — /help (ou ?) lista comandos · ↑/↓ histórico · Tab completa.");
       }
     }
   }, [open, push]);
@@ -251,6 +328,7 @@ function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[
     const val = input.trim();
     if (!val || stage === "running") return;
     setInput("");
+    setHistIdx(-1);
 
     if (stage === "confirm") {
       push("cmd", val);
@@ -260,18 +338,33 @@ function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[
         setPending(null);
         if (fn) await fn();
         setStage("idle");
+      } else if (val.toUpperCase().replace(/[^A-Z]/g, "") === "CONFIRMAR") {
+        // Acertou a palavra mas não as maiúsculas — não cancela, dá uma dica e segue aguardando.
+        push("info", pick(NEAR_CONFIRM_MESSAGES, submitCountRef.current++));
       } else {
-        push("info", "Operação cancelada.");
+        push("info", pick(CANCEL_MESSAGES, submitCountRef.current++));
         setPending(null);
         setStage("idle");
       }
       return;
     }
 
+    // Histórico (Feature 1): registra o comando, sem repetir o último igual.
+    if (historyRef.current[historyRef.current.length - 1] !== val) {
+      historyRef.current.push(val);
+    }
+
+    // Atalho "?" → /help (Feature 3).
+    if (val === "?") {
+      push("cmd", `> ${val}`);
+      await COMMANDS.help.run([], ctx);
+      return;
+    }
+
     push("cmd", `> ${val}`);
 
     if (!val.startsWith("/")) {
-      push("err", "Comandos devem começar com /. Digite /help.");
+      push("err", "Comandos devem começar com /. Digite /help (ou ?).");
       return;
     }
 
@@ -279,7 +372,7 @@ function AdminConsole({ refresh, orders }: { refresh: () => void; orders: Order[
     const name = rawName ?? "";
     const cmd = COMMANDS[name];
     if (!cmd) {
-      push("err", `Comando não encontrado: /${name}. Digite /help.`);
+      push("err", `Comando não encontrado: /${name}. Digite /help (ou ?).`);
       return;
     }
 
