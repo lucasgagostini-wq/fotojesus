@@ -11,6 +11,7 @@ import type { OrderAccessResponse, OrderSummary, StoredOrderSession } from "../l
 import {
   clearStoredOrderSession,
   loadStoredOrderSession,
+  pruneExpiredScopeSession,
   saveStoredOrderSession,
 } from "../lib/order-session";
 
@@ -149,6 +150,9 @@ async function prepareUploadPayload(file: File) {
   };
 }
 
+// Isolamento de sessão: esta rota ("/v2") usa exclusivamente as chaves *_v2.
+const SESSION_SCOPE = "v2" as const;
+
 function persistOrderSession(summary: OrderSummary): StoredOrderSession {
   const session = {
     accessToken: summary.accessToken,
@@ -156,13 +160,17 @@ function persistOrderSession(summary: OrderSummary): StoredOrderSession {
     recoveryCode: summary.recoveryCode,
   };
 
-  saveStoredOrderSession(session);
+  saveStoredOrderSession(SESSION_SCOPE, session);
   return session;
 }
 
 // ── AppFlowV2 ─────────────────────────────────────────────────────────────────
 function AppFlowV2() {
-  const [currentStep, setCurrentStep]           = useState<Step>('landing');
+  const [currentStep, setCurrentStep]           = useState<Step>(() => {
+    // Ao abrir: expira (e limpa) a sessão desta rota se passou do TTL de 6h.
+    pruneExpiredScopeSession(SESSION_SCOPE);
+    return 'landing';
+  });
   const [selectedStyles, setSelectedStyles]     = useState<number[]>([STYLES[0].id]);
   const [resultsSelected, setResultsSelected]   = useState<number[]>([]);
   const [showUpsell, setShowUpsell]             = useState(false);
@@ -245,7 +253,7 @@ function AppFlowV2() {
     let cancelled = false;
 
     const restoreOrder = async () => {
-      const session = loadStoredOrderSession();
+      const session = loadStoredOrderSession(SESSION_SCOPE);
       if (!session) {
         if (!cancelled) setRecoveringOrder(false);
         return;
@@ -261,7 +269,7 @@ function AppFlowV2() {
         });
 
         if (!res.ok) {
-          clearStoredOrderSession();
+          clearStoredOrderSession(SESSION_SCOPE);
           if (!cancelled) {
             setOrderSession(null);
             setRecoveringOrder(false);
@@ -273,7 +281,7 @@ function AppFlowV2() {
         if (cancelled) return;
         hydrateOrder(data.order);
       } catch {
-        clearStoredOrderSession();
+        clearStoredOrderSession(SESSION_SCOPE);
       } finally {
         if (!cancelled) setRecoveringOrder(false);
       }
@@ -415,7 +423,7 @@ function AppFlowV2() {
       setPixQrBase64(qrBase64);
       setInitialPaymentStatus(status === "approved" ? "approved" : status === "rejected" ? "rejected" : "pending");
       const nextSession = { accessToken, orderId, recoveryCode };
-      saveStoredOrderSession(nextSession);
+      saveStoredOrderSession(SESSION_SCOPE, nextSession);
       setOrderSession(nextSession);
       setOrderSummary((prev) => prev ? {
         ...prev,

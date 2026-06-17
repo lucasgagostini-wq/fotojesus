@@ -10,7 +10,12 @@ import {
 import type { OrderAccessResponse, OrderSummary, StoredOrderSession } from "../lib/order-contract";
 import {
   clearStoredOrderSession,
+  loadSelectedImages,
+  loadSelectedStyles,
   loadStoredOrderSession,
+  pruneExpiredScopeSession,
+  saveSelectedImages,
+  saveSelectedStyles,
   saveStoredOrderSession,
 } from "../lib/order-session";
 import { pixelTrack } from "../lib/pixel";
@@ -151,6 +156,9 @@ async function prepareUploadPayload(file: File) {
   };
 }
 
+// Isolamento de sessão: esta rota ("/") usa exclusivamente as chaves *_jesus.
+const SESSION_SCOPE = "jesus" as const;
+
 function persistOrderSession(summary: OrderSummary): StoredOrderSession {
   const session = {
     accessToken: summary.accessToken,
@@ -158,15 +166,19 @@ function persistOrderSession(summary: OrderSummary): StoredOrderSession {
     recoveryCode: summary.recoveryCode,
   };
 
-  saveStoredOrderSession(session);
+  saveStoredOrderSession(SESSION_SCOPE, session);
   return session;
 }
 
 // ── AppFlow ───────────────────────────────────────────────────────────────────
 function AppFlow() {
-  const [currentStep, setCurrentStep]           = useState<Step>('landing');
-  const [selectedStyles, setSelectedStyles]     = useState<number[]>([STYLES[0].id]);
-  const [resultsSelected, setResultsSelected]   = useState<number[]>([]);
+  const [currentStep, setCurrentStep]           = useState<Step>(() => {
+    // Ao abrir: expira (e limpa) a sessão desta rota se passou do TTL de 6h.
+    pruneExpiredScopeSession(SESSION_SCOPE);
+    return 'landing';
+  });
+  const [selectedStyles, setSelectedStyles]     = useState<number[]>(() => loadSelectedStyles(SESSION_SCOPE) ?? [STYLES[0].id]);
+  const [resultsSelected, setResultsSelected]   = useState<number[]>(() => loadSelectedImages(SESSION_SCOPE) ?? []);
   const [showUpsell, setShowUpsell]             = useState(false);
   const [pixValue, setPixValue]                 = useState<number>(10.90);
   const [pixLabel, setPixLabel]                 = useState<string>("1 imagem");
@@ -254,7 +266,7 @@ function AppFlow() {
     let cancelled = false;
 
     const restoreOrder = async () => {
-      const session = loadStoredOrderSession();
+      const session = loadStoredOrderSession(SESSION_SCOPE);
       if (!session) {
         if (!cancelled) setRecoveringOrder(false);
         return;
@@ -270,7 +282,7 @@ function AppFlow() {
         });
 
         if (!res.ok) {
-          clearStoredOrderSession();
+          clearStoredOrderSession(SESSION_SCOPE);
           if (!cancelled) {
             setOrderSession(null);
             setRecoveringOrder(false);
@@ -282,7 +294,7 @@ function AppFlow() {
         if (cancelled) return;
         hydrateOrder(data.order);
       } catch {
-        clearStoredOrderSession();
+        clearStoredOrderSession(SESSION_SCOPE);
       } finally {
         if (!cancelled) setRecoveringOrder(false);
       }
@@ -301,6 +313,14 @@ function AppFlow() {
       }
     };
   }, [uploadedPhotoUrl]);
+
+  // Persistência isolada por rota das seleções (write-through, TTL 6h).
+  useEffect(() => {
+    saveSelectedStyles(SESSION_SCOPE, selectedStyles);
+  }, [selectedStyles]);
+  useEffect(() => {
+    saveSelectedImages(SESSION_SCOPE, resultsSelected);
+  }, [resultsSelected]);
 
   const handleFileSelect = (file: File) => {
     if (uploadedPhotoUrl?.startsWith("blob:")) {
@@ -477,7 +497,7 @@ function AppFlow() {
       setPixQrBase64(qrBase64);
       setInitialPaymentStatus(status === "approved" ? "approved" : "pending");
       const nextSession = { accessToken, orderId, recoveryCode };
-      saveStoredOrderSession(nextSession);
+      saveStoredOrderSession(SESSION_SCOPE, nextSession);
       setOrderSession(nextSession);
       setOrderSummary((prev) => prev ? {
         ...prev,
