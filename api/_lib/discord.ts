@@ -55,11 +55,15 @@ function getMention(): string | undefined {
   return id ? `<@${id}>` : undefined;
 }
 
-/** Envio de baixo nível — fire-and-forget, swallow de qualquer erro. */
-async function send(embed: Embed): Promise<void> {
+/**
+ * Envio de baixo nível — fire-and-forget, swallow de qualquer erro.
+ * A menção (`@usuário`) só é incluída quando `opts.mention === true`. Por padrão
+ * NENHUMA notificação menciona ninguém — apenas o pagamento aprovado opta por isso.
+ */
+async function send(embed: Embed, opts?: { mention?: boolean }): Promise<void> {
   const url = process.env.DISCORD_WEBHOOK_URL;
   if (!url) return;
-  const mention = getMention();
+  const mention = opts?.mention ? getMention() : undefined;
   try {
     await fetch(url, {
       body: JSON.stringify({
@@ -91,9 +95,7 @@ export async function sendTest(): Promise<{ httpStatus: number; sentAt: string }
     timeZone: "America/Sao_Paulo",
   });
 
-  const mention = getMention();
   const body = JSON.stringify({
-    ...(mention ? { content: mention } : {}),
     embeds: [
       {
         title: "🚀 TESTE DE INTEGRAÇÃO BMTH",
@@ -175,7 +177,7 @@ export async function notifyPaymentApproved(params: {
       { inline: false, name: "Data", value: nowSaoPaulo() },
     ],
     title: "🔥 PAGAMENTO APROVADO",
-  });
+  }, { mention: true }); // ÚNICA notificação que menciona o usuário (@) no Discord.
 }
 
 // ─────────────────────── Evento 3 — Pagamento rejeitado ───────────────────────
