@@ -84,6 +84,32 @@ const COMMANDS: Record<string, CommandDef> = {
       });
     },
   },
+  "reset-funnel": {
+    description: "Zera as métricas de avanço do funil (funnel_events)",
+    run: async (_args, ctx) => {
+      ctx.push("info", "⚠️  Isto zera as métricas de avanço do funil (topo/meio: landing → telefone).");
+      ctx.push("info", "Pedidos, pagamentos e PIX/aprovado/entregue NÃO são afetados.");
+      ctx.push("prompt", "Digite CONFIRMAR para zerar as métricas do funil (irreversível).");
+      ctx.setStage("confirm");
+      ctx.setPending(() => async () => {
+        ctx.push("info", "Executando /reset-funnel...");
+        try {
+          const res = await fetch("/api/bmth/admin-cmd", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: "reset-funnel" }),
+          });
+          const data = await res.json() as { ok?: boolean; message?: string; error?: string };
+          if (!res.ok) throw new Error(data.error ?? "Erro desconhecido");
+          ctx.push("ok", `✓ ${data.message ?? "Métricas do funil zeradas."}`);
+          ctx.refresh();
+        } catch (err) {
+          ctx.push("err", `✗ ${err instanceof Error ? err.message : "Erro ao executar"}`);
+        }
+      });
+    },
+  },
   exclude: {
     description: "Exclui UM pedido pelo código (8 caracteres) ou ID completo",
     run: async (args, ctx) => {
@@ -673,7 +699,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const refresh = useCallback(() => {
     void loadDashboard();
     void loadOrders();
-  }, [loadDashboard, loadOrders]);
+    void loadFunnel();
+  }, [loadDashboard, loadOrders, loadFunnel]);
 
   useEffect(() => {
     void loadDashboard();
