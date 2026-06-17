@@ -312,13 +312,6 @@ export const Route = createFileRoute("/BMTH/")({
 
 // ─────────────────────────── helpers compartilhados ───────────────────────────
 
-export const STYLE_LABELS: Record<number, string> = {
-  1: "Jesus te abraçando",
-  2: "Jesus ao seu lado sorrindo",
-  3: "Jesus segurando sua mão",
-  4: "Momento no campo com Jesus",
-};
-
 export function fmtDate(iso: null | string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -490,6 +483,8 @@ function SourceBadge({ source }: { source: null | string }) {
   return <span className="text-xs text-zinc-600">SEM ORIGEM</span>;
 }
 
+const AUTO_REFRESH_MS = 15_000; // intervalo do polling automático do painel: 15s
+
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -501,6 +496,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [total, setTotal] = useState(0);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -511,9 +507,14 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, []);
 
-  const loadOrders = useCallback(async () => {
-    setLoadingOrders(true);
-    setError("");
+  const loadOrders = useCallback(async (opts?: { silent?: boolean }) => {
+    // No polling silencioso não mexemos no estado de loading nem no erro: a
+    // tabela atual permanece visível (sem flicker, sem alterar o scroll) e uma
+    // falha transitória não apaga os dados já carregados.
+    if (!opts?.silent) {
+      setLoadingOrders(true);
+      setError("");
+    }
     try {
       const params = new URLSearchParams({ filter, page: String(page), search });
       const res = await fetch(`/api/bmth/orders?${params.toString()}`, { credentials: "include" });
@@ -522,10 +523,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       setOrders(body.orders);
       setTotalPages(body.totalPages);
       setTotal(body.total);
+      setLastUpdated(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro");
+      if (!opts?.silent) setError(err instanceof Error ? err.message : "Erro");
     } finally {
-      setLoadingOrders(false);
+      if (!opts?.silent) setLoadingOrders(false);
     }
   }, [filter, page, search]);
 
@@ -541,6 +543,17 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     void loadOrders();
   }, [loadOrders]);
+
+  // Atualização automática (polling 15s): recarrega cards, métricas, últimos
+  // pagamentos e tabela de pedidos SEM reload e sem perder filtro/busca/scroll.
+  // O efeito recria o intervalo quando filtro/página/busca mudam (deps de
+  // loadOrders/loadDashboard), garantindo que cada ciclo use o estado atual.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void Promise.all([loadDashboard(), loadOrders({ silent: true })]);
+    }, AUTO_REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [loadDashboard, loadOrders]);
 
   async function logout() {
     await fetch("/api/bmth/logout", { credentials: "include", method: "POST" }).catch(() => {});
@@ -576,6 +589,23 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
+        {/* Indicador de atualização automática (polling 15s) */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+          <span className="flex items-center gap-1.5 font-medium text-emerald-400">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            </span>
+            Atualização automática ativa
+          </span>
+          <span className="text-zinc-500">
+            Última atualização:{" "}
+            <span className="font-medium text-zinc-300">
+              {lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR", { hour12: false }) : "—"}
+            </span>
+          </span>
+        </div>
+
         {/* Cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard label="Pedidos hoje" value={dash ? String(dash.ordersToday) : "—"} />
