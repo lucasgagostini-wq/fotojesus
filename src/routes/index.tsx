@@ -185,6 +185,9 @@ function AppFlow() {
   const [pixError, setPixError]                 = useState<string | null>(null);
   const [photoUploading, setPhotoUploading]     = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+  const [phoneSubmitError, setPhoneSubmitError] = useState<string | null>(null);
+  const [phoneSubmitting, setPhoneSubmitting]   = useState(false);
+  const uploadPromiseRef = useRef<Promise<StoredOrderSession> | null>(null);
   const [recoveringOrder, setRecoveringOrder]   = useState(true);
   const [orderSession, setOrderSession]         = useState<StoredOrderSession | null>(null);
   const [orderSummary, setOrderSummary]         = useState<OrderSummary | null>(null);
@@ -310,17 +313,21 @@ function AppFlow() {
     setShowPhotoConfirm(true);
   };
 
-  const handlePhotoConfirm = async () => {
-    if (!uploadedPhotoFile || photoUploading) return;
+  // Envia a foto e cria/atualiza o pedido. Deduplica chamadas concorrentes via
+  // uploadPromiseRef para que um upload em segundo plano e uma confirmação de
+  // telefone nunca criem dois pedidos — ambos aguardam a MESMA promise.
+  const uploadPhoto = useCallback((): Promise<StoredOrderSession> => {
+    if (uploadPromiseRef.current) return uploadPromiseRef.current;
 
-    // Navegar imediatamente — upload continua em segundo plano sem bloquear o usuário
-    setShowPhotoConfirm(false);
-    nextStep("styles");
-    setPhotoUploadError(null);
-    setPhotoUploading(true);
+    const file = uploadedPhotoFile;
+    if (!file) {
+      return Promise.reject(
+        new Error("Não encontramos sua foto. Volte e envie sua foto novamente."),
+      );
+    }
 
-    try {
-      const payload = await prepareUploadPayload(uploadedPhotoFile);
+    const task = (async () => {
+      const payload = await prepareUploadPayload(file);
       const res = await fetch("/api/upload-photo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -335,14 +342,39 @@ function AppFlow() {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? "Erro ao salvar sua foto");
       }
 
-      const data = await res.json() as OrderAccessResponse;
-      // Upload roda em segundo plano: hidrata os dados sem mexer no passo atual
-      // do funil (o usuário já avançou para "styles" e segue o fluxo normal).
+      const data = (await res.json()) as OrderAccessResponse;
+      // Hidrata os dados sem mexer no passo atual do funil.
       hydrateOrder(data.order, { navigate: false });
+      return {
+        accessToken: data.order.accessToken,
+        orderId: data.order.id,
+        recoveryCode: data.order.recoveryCode,
+      } satisfies StoredOrderSession;
+    })();
+
+    uploadPromiseRef.current = task;
+    void task.finally(() => {
+      uploadPromiseRef.current = null;
+    });
+    return task;
+  }, [uploadedPhotoFile, orderSession, hydrateOrder]);
+
+  const handlePhotoConfirm = async () => {
+    if (!uploadedPhotoFile || photoUploading) return;
+
+    // Navegar imediatamente — upload continua em segundo plano sem bloquear o usuário
+    setShowPhotoConfirm(false);
+    nextStep("styles");
+    setPhotoUploadError(null);
+    setPhoneSubmitError(null);
+    setPhotoUploading(true);
+
+    try {
+      await uploadPhoto();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao salvar sua foto";
       setPhotoUploadError(message);
@@ -365,6 +397,7 @@ function AppFlow() {
     setPixLabel(quote.label);
     setCheckoutPriceKey(priceKey);
     setCheckoutStyleIds(quote.selectedStyleIds);
+    setPhoneSubmitError(null);
     setShowPhoneModal(true);
   };
 
@@ -377,10 +410,26 @@ function AppFlow() {
   };
 
   const handlePhoneConfirm = async () => {
-    if (!orderSession) {
-      setPixError("Seu pedido precisa ser recuperado antes de gerar o PIX.");
-      nextStep("upload");
-      return;
+    setPhoneSubmitError(null);
+
+    // O upload roda em segundo plano. Se o pedido ainda não foi criado (upload
+    // em andamento ou que falhou), garantimos aqui SEM expulsar o usuário do
+    // funil. Erros aparecem dentro do próprio modal — nunca um scroll silencioso.
+    let session = orderSession;
+    if (!session) {
+      setPhoneSubmitting(true);
+      try {
+        session = await uploadPhoto();
+      } catch (err: unknown) {
+        setPhoneSubmitting(false);
+        setPhoneSubmitError(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível preparar seu pedido. Tente novamente.",
+        );
+        return;
+      }
+      setPhoneSubmitting(false);
     }
 
     setShowPhoneModal(false);
@@ -400,8 +449,8 @@ function AppFlow() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          accessToken: orderSession.accessToken,
-          orderId: orderSession.orderId,
+          accessToken: session.accessToken,
+          orderId: session.orderId,
           priceKey: checkoutPriceKey,
           phoneNumber,
           selectedStyleIds: checkoutStyleIds,
@@ -556,6 +605,8 @@ function AppFlow() {
           setPhone={setPhoneNumber}
           onNext={handlePhoneConfirm}
           onClose={() => setShowPhoneModal(false)}
+          error={phoneSubmitError}
+          submitting={phoneSubmitting}
         />
       )}
       {showRecoveryModal && (
@@ -1248,11 +1299,13 @@ function RecoveryModal({
   );
 }
 
-function PhoneModal({ phone, setPhone, onNext, onClose }: {
+function PhoneModal({ phone, setPhone, onNext, onClose, error, submitting }: {
   phone: string;
   setPhone: React.Dispatch<React.SetStateAction<string>>;
   onNext: () => void;
   onClose: () => void;
+  error?: string | null;
+  submitting?: boolean;
 }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -1322,18 +1375,26 @@ function PhoneModal({ phone, setPhone, onNext, onClose }: {
             </div>
           </div>
 
+          {/* Mensagem de erro — visível dentro do próprio modal */}
+          {error && (
+            <p className="text-center text-[13px] font-bold text-red-600 leading-snug -mt-1">
+              {error}
+            </p>
+          )}
+
           {/* Botão principal */}
           <button
-            onClick={isValid ? onNext : undefined}
-            disabled={!isValid}
-            className={`w-full py-[18px] rounded-[12px] font-black text-white text-[16px] tracking-wide uppercase shadow-md transition-all duration-200 cursor-pointer ${
-              isValid
-                ? "opacity-100 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-105 active:scale-[0.98] pulse-glow"
+            type="button"
+            onClick={isValid && !submitting ? onNext : undefined}
+            disabled={!isValid || submitting}
+            className={`w-full py-[18px] rounded-[12px] font-black text-white text-[16px] tracking-wide uppercase shadow-md transition-all duration-200 ${
+              isValid && !submitting
+                ? "opacity-100 cursor-pointer hover:-translate-y-0.5 hover:shadow-xl hover:brightness-105 active:scale-[0.98] pulse-glow"
                 : "opacity-40 cursor-not-allowed"
             }`}
-            style={{ background: isValid ? "linear-gradient(135deg, #F6C346 0%, #F5A623 50%, #D4810A 100%)" : "#ccc" }}
+            style={{ background: isValid && !submitting ? "linear-gradient(135deg, #F6C346 0%, #F5A623 50%, #D4810A 100%)" : "#ccc" }}
           >
-            CONTINUAR PARA PAGAMENTO
+            {submitting ? "PREPARANDO SEU PEDIDO…" : "CONTINUAR PARA PAGAMENTO"}
           </button>
 
           {/* Banner de segurança */}
