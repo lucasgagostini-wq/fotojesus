@@ -103,10 +103,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "id, access_token, recovery_code, order_status, phone, email, amount, label, price_key, selected_styles, purchased_styles, mp_payment_id, mp_status, pix_code, qr_base64, created_at, paid_at, source, source_original_path, source_preview_path",
       )
       .eq("id", externalReference)
-      .single();
+      .maybeSingle();
 
-    if (orderError || !order) {
-      throw new Error(orderError?.message ?? "Order not found for payment");
+    if (orderError) {
+      throw new Error(orderError.message);
+    }
+
+    // Pedido inexistente (apagado em limpeza de teste/reset). O MP reenvia webhooks
+    // de pagamentos antigos — responder 200 evita retentativas e NÃO é erro de fluxo,
+    // então não dispara alerta no Discord.
+    if (!order) {
+      console.warn(`[webhook] pedido não encontrado para external_reference=${externalReference} (ignorado)`);
+      return res.status(200).json({ ok: true, ignored: "order_not_found" });
     }
 
     await supabase
