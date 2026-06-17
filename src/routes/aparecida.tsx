@@ -156,6 +156,10 @@ async function prepareUploadPayload(file: File) {
 // Isolamento de sessão: esta rota ("/aparecida") usa exclusivamente as chaves *_aparecida.
 const SESSION_SCOPE = "aparecida" as const;
 
+// Order bump (oferta pós-resultados). DESLIGADO temporariamente p/ teste da oferta.
+// RELIGAR: trocar para `true` e dar deploy — o UpsellModal volta a aparecer.
+const ORDER_BUMP_ENABLED: boolean = false;
+
 function persistOrderSession(summary: OrderSummary): StoredOrderSession {
   const session = {
     accessToken: summary.accessToken,
@@ -431,6 +435,12 @@ function AppFlowAparecida() {
   const handleResultsContinue = () => {
     if (resultsSelected.length === 4) {
       goToPhone("quad", resultsSelected);
+    } else if (!ORDER_BUMP_ENABLED) {
+      // Bump desligado: vai direto pro telefone com o preço base da seleção
+      // (mesma lógica do "Não, obrigado" do UpsellModal).
+      const basePriceKey: CheckoutPriceKey =
+        resultsSelected.length === 1 ? "single" : resultsSelected.length === 2 ? "double" : "triple";
+      goToPhone(basePriceKey, resultsSelected);
     } else {
       setShowUpsell(true);
       trackFunnel(SESSION_SCOPE, "offer_view", orderSession?.orderId);
