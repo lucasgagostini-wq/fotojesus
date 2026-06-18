@@ -23,20 +23,20 @@ import {
 import { pixelTrack } from "../lib/pixel";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
-import hugImg               from "../assets/jesus-moments/hug.png";
-import smilingImg           from "../assets/jesus-moments/smiling.png";
-import holdingHandsImg      from "../assets/jesus-moments/holding-hands.png";
-import fieldImg             from "../assets/jesus-moments/field.png";
+import hugImg               from "../assets/jesus-moments/hug.webp";
+import smilingImg           from "../assets/jesus-moments/smiling.webp";
+import holdingHandsImg      from "../assets/jesus-moments/holding-hands.webp";
+import fieldImg             from "../assets/jesus-moments/field.webp";
 
 import hugPixeladoImg          from "../assets/jesus-moments/hug-pixelado.jpeg";
 import smilingPixeladoImg      from "../assets/jesus-moments/smiling-pielado.jpeg";
 import holdingHandsPixeladoImg from "../assets/jesus-moments/holding-hands-pixelado.jpeg";
 import fieldPixeladoImg        from "../assets/jesus-moments/field-pixelado.jpeg";
 
-import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
-import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
+import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.webp";
+import uploadIdealImg  from "../assets/upload/upload-foto-ideal.webp";
 
-import larBannerImg    from "../assets/institucional/lar-aconchego-banner.png";
+import larBannerImg    from "../assets/institucional/lar-aconchego-banner.webp";
 import larLogoImg      from "../assets/institucional/lar-aconchego-logo.png";
 import mpLogoImg       from "../assets/pagamento/mercado-pago-logo.png";
 

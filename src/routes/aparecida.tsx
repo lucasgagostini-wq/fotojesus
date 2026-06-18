@@ -23,15 +23,15 @@ import {
 import { pixelTrack } from "../lib/pixel";
 
 // ── Assets ──────────────────────────────────────────────────────────────────
-import aparecidaAbracImg      from "../assets/aparecida-moments/aparecida-abraco.png";
-import aparecidaSantuarioImg  from "../assets/aparecida-moments/aparecida-santuario.png";
-import aparecidaMaosDadasImg  from "../assets/aparecida-moments/aparecida-maos-dadas.png";
-import aparecidaBencaoImg     from "../assets/aparecida-moments/aparecida-bencao.png";
+import aparecidaAbracImg      from "../assets/aparecida-moments/aparecida-abraco.webp";
+import aparecidaSantuarioImg  from "../assets/aparecida-moments/aparecida-santuario.webp";
+import aparecidaMaosDadasImg  from "../assets/aparecida-moments/aparecida-maos-dadas.webp";
+import aparecidaBencaoImg     from "../assets/aparecida-moments/aparecida-bencao.webp";
 
-import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.jpeg";
-import uploadIdealImg  from "../assets/upload/upload-foto-ideal.png";
+import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.webp";
+import uploadIdealImg  from "../assets/upload/upload-foto-ideal.webp";
 
-import larBannerImg    from "../assets/institucional/lar-aconchego-banner.png";
+import larBannerImg    from "../assets/institucional/lar-aconchego-banner.webp";
 import larLogoImg      from "../assets/institucional/lar-aconchego-logo.png";
 import mpLogoImg       from "../assets/pagamento/mercado-pago-logo.png";
 
