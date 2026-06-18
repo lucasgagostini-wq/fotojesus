@@ -179,7 +179,7 @@ function AppFlow() {
   const [currentStep, setCurrentStep]           = useState<Step>(() => {
     // Ao abrir: expira (e limpa) a sessão desta rota se passou do TTL de 6h.
     pruneExpiredScopeSession(SESSION_SCOPE);
-    return 'results'; // TEMP-PREVIEW — REVERTER para 'landing' antes do deploy
+    return 'landing';
   });
   const [selectedStyles, setSelectedStyles]     = useState<number[]>(() => loadSelectedStyles(SESSION_SCOPE) ?? [STYLES[0].id]);
   const [resultsSelected, setResultsSelected]   = useState<number[]>(() => loadSelectedImages(SESSION_SCOPE) ?? []);
