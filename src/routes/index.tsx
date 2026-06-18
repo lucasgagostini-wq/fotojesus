@@ -36,8 +36,6 @@ import fieldPixeladoImg        from "../assets/jesus-moments/field-pixelado.jpeg
 import uploadErradoImg from "../assets/upload/upload-exemplo-ruim.webp";
 import uploadIdealImg  from "../assets/upload/upload-foto-ideal.webp";
 
-import larBannerImg    from "../assets/institucional/lar-aconchego-banner.webp";
-import larLogoImg      from "../assets/institucional/lar-aconchego-logo.png";
 import mpLogoImg       from "../assets/pagamento/mercado-pago-logo.png";
 
 import dep1 from "../assets/depoimentos/depoimento-1.jpeg";
@@ -181,7 +179,7 @@ function AppFlow() {
   const [currentStep, setCurrentStep]           = useState<Step>(() => {
     // Ao abrir: expira (e limpa) a sessão desta rota se passou do TTL de 6h.
     pruneExpiredScopeSession(SESSION_SCOPE);
-    return 'landing';
+    return 'results'; // TEMP-PREVIEW — REVERTER para 'landing' antes do deploy
   });
   const [selectedStyles, setSelectedStyles]     = useState<number[]>(() => loadSelectedStyles(SESSION_SCOPE) ?? [STYLES[0].id]);
   const [resultsSelected, setResultsSelected]   = useState<number[]>(() => loadSelectedImages(SESSION_SCOPE) ?? []);
@@ -1022,17 +1020,11 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
         </p>
       </header>
 
-      {/* Lar Aconchego Banner */}
-      <div className="rounded-2xl overflow-hidden shadow-lg bg-[#0a2d6e]">
-        <div className="p-2.5">
-          <img src={larBannerImg} alt="Lar Aconchego & Fé" className="w-full rounded-xl object-contain" />
-        </div>
-        <div className="px-4 pb-4 pt-1 text-center">
-          <p className="text-white font-bold text-base leading-snug">
-            💛 100% dos valores arrecadados serão doados para o{" "}
-            <span className="underline font-extrabold">Lar Aconchego &amp; Fé</span>
-          </p>
-        </div>
+      {/* O que você recebe (clareza + garantia) — substitui o banner antigo */}
+      <div className="rounded-2xl bg-amber-50 border border-brand-gold/30 shadow-sm p-4 flex flex-col gap-2.5 text-[14px] text-gray-700 font-semibold text-center">
+        <p>📲 Enviada no seu WhatsApp em poucas horas</p>
+        <p>🖼️ Alta qualidade, sem marca d'água</p>
+        <p>🛡️ Não ficou bom? A gente refaz ou devolve seu dinheiro</p>
       </div>
 
       <div className="text-center mt-0.5">
@@ -1103,12 +1095,12 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
           {/* 1. Urgência  ·  2. Emocional */}
           <div className="max-w-sm mx-auto flex flex-col gap-2 mt-3">
             <div className="flex items-center justify-center gap-2">
-              <span className="text-[16px] leading-none">⏳</span>
-              <p className="text-[15px] text-gray-700 font-semibold leading-snug">Sua imagem fica disponível por tempo limitado</p>
+              <span className="text-[16px] leading-none">🛡️</span>
+              <p className="text-[15px] text-gray-700 font-semibold leading-snug">Não ficou bom? A gente refaz ou devolve</p>
             </div>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-[16px] leading-none">✝️</span>
-              <p className="text-[15px] text-gray-800 font-semibold leading-snug">Imagem pronta para você guardar para sempre</p>
+              <span className="text-[16px] leading-none">📲</span>
+              <p className="text-[15px] text-gray-800 font-semibold leading-snug">Enviada no seu WhatsApp em poucas horas</p>
             </div>
           </div>
 
@@ -1138,7 +1130,7 @@ function ResultsScreen({ selectedIds, setSelectedIds, onContinue }: {
               <span className="text-[13px] font-medium leading-tight opacity-90 normal-case">Pagamento rápido e seguro via Pix</span>
             </button>
 
-            <p className="text-center text-[15px] text-gray-700 font-semibold mt-2">Acesso imediato após o pagamento</p>
+            <p className="text-center text-[15px] text-gray-700 font-semibold mt-2">Enviamos no seu WhatsApp em poucas horas após o pagamento</p>
           </div>
 
           <div className="mt-4 mb-20">
@@ -1699,10 +1691,9 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
           </div>
         )}
         <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 w-full">
-          <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+          <span className="text-2xl shrink-0">✅</span>
           <p className="text-xs text-gray-600 text-left leading-snug font-medium">
-            💛 Obrigado por ajudar o <strong>Lar Aconchego & Fé</strong>!<br />
-            Sua generosidade leva amor a quem mais precisa.
+            Pagamento confirmado! Estamos gerando sua foto e enviaremos no seu WhatsApp em poucas horas.
           </p>
         </div>
       </div>
@@ -1717,10 +1708,10 @@ function PixScreen({ value, label, pixCode, qrBase64, orderId, accessToken, phon
       </div>
 
       <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100">
-        <img src={larLogoImg} alt="Lar Aconchego & Fé" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+        <span className="text-3xl shrink-0">📲</span>
         <p className="text-sm leading-snug text-gray-700 font-medium">
-          💛 Obrigado por ajudar! Sua compra leva amor e acolhimento aos idosos do{" "}
-          <span className="underline font-bold">Lar Aconchego &amp; Fé</span>
+          Assim que o PIX cair, geramos sua foto com Jesus e enviamos no seu{" "}
+          <span className="font-bold">WhatsApp em poucas horas</span>.
         </p>
       </div>
 
